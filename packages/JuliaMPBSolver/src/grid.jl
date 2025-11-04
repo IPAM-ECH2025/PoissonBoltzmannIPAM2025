@@ -1,8 +1,6 @@
 module Grid
 
 using ExtendableGrids
-using GridVisualize
-using CairoMakie
 
 struct GeometricGrid
   domain_size::Float32
@@ -36,18 +34,37 @@ function create_grid(grid::GeometricGrid)
     geomspace(grid.domain_size / 2.0, grid.domain_size, local_hmax, local_hmin)
   x = glue(x_left, x_right)
 
-  return simplexgrid(x)
+  # Create the simplex grid
+  x = simplexgrid(x)
+
+  # Add a face to the grid in the middle
+  # TODO: Why do this?
+  bfacemask!(
+    x,
+    [grid.domain_size / 2],
+    [grid.domain_size / 2],
+    3,
+    tol = 1.0e-2 * local_hmin,
+  )
+
+  println(num_nodes(x))
+
+  return x
 end
 
-function plot_grid(directory, name = "grid.png"; plotter = CairoMakie)
-  # TODO: It seems to plot a window somewhere in here. Need to disable that.
-  # TODO: Accept a grid for input so this isn't just a weird debugging function.
-  if !isnothing(plotter)
-    grid = create_grid(GeometricGrid())
-    fig = gridplot(grid; Plotter = plotter, resolution = (500, 500))
-    plotter.save(joinpath(directory, name), fig)
-  end
-  return nothing
+function is_equivalent(
+  grid::ExtendableGrid,
+  dim::Int,
+  n_nodes::Int,
+  n_cells::Int,
+  n_boundary_faces::Int,
+)
+  return dim_grid(grid) == dim &&
+         num_nodes(grid) == n_nodes &&
+         num_cells(grid) == n_cells &&
+         num_bfaces(grid) == n_boundary_faces
 end
+
+export GeometricGrid, create_grid, is_equivalent
 
 end

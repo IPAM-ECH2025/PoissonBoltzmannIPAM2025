@@ -38,7 +38,8 @@ function create_grid(grid::GeometricGrid)
   x = simplexgrid(x)
 
   # Add a face to the grid in the middle
-  # TODO: Why do this?
+  # TODO: Refactor this as a function. We don't always need this additional 
+  # face to impose boundary conditions
   bfacemask!(
     x,
     [grid.domain_size / 2],
@@ -46,8 +47,6 @@ function create_grid(grid::GeometricGrid)
     3,
     tol = 1.0e-2 * local_hmin,
   )
-
-  println(num_nodes(x))
 
   return x
 end

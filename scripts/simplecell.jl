@@ -46,8 +46,6 @@ begin
   const ε_0 = ph"ε_0"
 end
 
-const xscale = identity  # x axis scale for graphics
-
 @assert dot(c_bulk, z) == 0
 
 begin
@@ -129,6 +127,8 @@ sol = solve(
   damp_initial = 0.1,
   maxiters = 1000,
 )
+
+print(typeof(sol))
 
 function concentrations(sol)
   n = size(sol, 2)

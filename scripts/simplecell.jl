@@ -45,7 +45,7 @@ begin
   const ε_0 = ph"ε_0"
 end
 
-const xscale = identity;  # x axis scale for graphics
+const xscale = identity  # x axis scale for graphics
 
 @assert dot(c_bulk, z) == 0
 

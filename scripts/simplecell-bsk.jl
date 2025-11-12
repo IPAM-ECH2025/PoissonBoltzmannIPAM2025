@@ -12,6 +12,7 @@ using LaTeXStrings
 using DoubleFloats
 using ForwardDiff
 using PythonPlot
+using JuliaMPBSolver
 
 begin
   const χ_S = 78.49 - 1
@@ -53,22 +54,15 @@ begin
   const dlcap0 = sqrt(2 * (1 + χ_S) * ε_0 * F^2 * c_bulk[1] / RT) # Double layer capacitance at point of zero charge (0V)
 end
 
-const nref = 4 # grid refinement level
-
-begin
-  const hmin = 1.0e-1 * nm * 2.0^(-nref) # grid size at working electrode
-  const hmax = 1.0 * nm * 2.0^(-nref) # grid size at bulk
-
-  δx = 1.0e-3 * nm * 0 # X offset for logarithmic in x plots
-  X0 = geomspace(δx, L / 2, hmin, hmax)
-  X1 = geomspace(L / 2, L - δx, hmax, hmin)
-  X = glue(X0, X1)
-end
-
-begin
-  grid = simplexgrid(X)
-  bfacemask!(grid, [L / 2], [L / 2], 3, tol = 1.0e-10 * nm)
-end
+grid_parameters = JuliaMPBSolver.Grid.GeometricGrid(
+  domain_size = L,
+  refinement = 4,
+  hmin = 1.0e-1 * nm,
+  hmax = 1.0 * nm,
+  use_offset = false,
+)
+grid = JuliaMPBSolver.Grid.create_full_cell(grid_parameters)
+X = JuliaMPBSolver.Grid.get_coordinates(grid)
 
 const Y = DiffCache(ones(floattype, length(z))) # place for temporary data in callbacks
 

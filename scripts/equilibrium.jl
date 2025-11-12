@@ -12,6 +12,7 @@ using LessUnitful.MoreUnitful
 using Test
 using PythonPlot
 using Colors
+using JuliaMPBSolver
 
 function L_Debye(data)
   return sqrt(
@@ -376,15 +377,17 @@ begin
   Vmax = 2 * V
 
   L = 20nm
-
-  hmin = 0.05 * nm
-
-  hmax = 0.5 * nm
-
-  X = ExtendableGrids.geomspace(0, L, hmin, hmax)
-
-  grid = ExtendableGrids.simplexgrid(X)
 end
+
+grid_parameters = JuliaMPBSolver.Grid.GeometricGrid(
+  domain_size = L,
+  refinement = 0,
+  hmin = 0.05 * nm,
+  hmax = 0.5 * nm,
+  use_offset = false,
+)
+grid = JuliaMPBSolver.Grid.create_half_cell(grid_parameters)
+X = JuliaMPBSolver.Grid.get_coordinates(grid)
 
 sys_sy = create_equilibrium_system(grid, equidata)
 

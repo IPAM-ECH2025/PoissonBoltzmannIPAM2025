@@ -1,16 +1,15 @@
 module Parameters
 
-struct Params{F<:AbstractFloat,I<:Integer}
-  temperature::T
-  dielectric_susceptibility::T
-  reference_pressure::T
-  reference_electric_potential::T
-  domain_size::T
+struct UserParameters{F<:AbstractFloat,I<:Integer}
+  temperature::F
+  dielectric_susceptibility::F
+  reference_pressure::F
+  reference_electric_potential::F
   charge_numbers::AbstractVector{<:I}
 
-  use_bikerman::Bool
+  use_bikerman_model::Bool
 end
 
-export Params
+export UserParameters
 
 end

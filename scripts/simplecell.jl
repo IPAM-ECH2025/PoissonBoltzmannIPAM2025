@@ -14,16 +14,6 @@ using ForwardDiff
 using PythonPlot
 using JuliaMPBSolver
 
-# Parameters
-user_parameters = JuliaMPBSolver.Parameters.UserParameters(
-  273.15 + 25 * JuliaMPBSolver.Units.K,
-  78.49 - 1,
-  0.0,
-  0.0,
-  [-1, 1],
-  true,
-)
-
 begin
   const F = ph"N_A" * ph"e"
   const K = ufac"K"
@@ -46,19 +36,29 @@ end
 
 begin
   const q = nel * ph"e" / ufac"nm^2" # surface charge
-  const c_bulk =
-    [
-      M_bulk / abs(user_parameters.charge_numbers[1]),
-      M_bulk / abs(user_parameters.charge_numbers[2]),
-    ] * mol / dm^3 # bulk  concentrations
+
   const c̄ = 55.508mol / dm^3 # summary molar concentration
   const ε_0 = ph"ε_0"
 end
 
-@assert dot(c_bulk, user_parameters.charge_numbers) == 0
+const z = [-1, 1]
+const c_bulk = [M_bulk / abs(z[1]), M_bulk / abs(z[2])] * mol / dm^3 # bulk  concentrations
+const c0_bulk = c̄ - sum(c_bulk) # solvent bulk molar concentration
+
+# Parameters
+user_parameters = JuliaMPBSolver.Parameters.UserParameters(
+  273.15 + 25 * JuliaMPBSolver.Units.K,
+  78.49 - 1,
+  0.0,
+  0.0,
+  z,
+  c̄,
+  c_bulk,
+  c0_bulk,
+  true,
+)
 
 begin
-  const c0_bulk = c̄ - sum(c_bulk) # solvent bulk molar concentration
   const l_debye = sqrt(
     (1 + user_parameters.dielectric_susceptibility) * ε_0 * RT /
     (F^2 * c_bulk[1]),
@@ -85,19 +85,6 @@ X = JuliaMPBSolver.Grid.get_coordinates(grid)
 
 const Y = DiffCache(ones(floattype, length(user_parameters.charge_numbers))) # place for temporary data in callbacks
 
-function molfractions!(y, ϕ)
-  N = length(user_parameters.charge_numbers)
-  for i in 1:N
-    y[i] =
-      exp(-user_parameters.charge_numbers[i] * ϕ * F / RT) * c_bulk[i] / c0_bulk
-  end
-  denom = 1.0 / (one(ϕ) + user_parameters.use_bikerman_model * sum(y))
-  for i in 1:N
-    y[i] = y[i] * denom
-  end
-  return nothing
-end
-
 function flux!(y, u, edge, data)
   eins = one(eltype(u))
   h = floattype(edgelength(edge))
@@ -108,19 +95,10 @@ function flux!(y, u, edge, data)
   return nothing
 end
 
-function spacecharge!(y, ϕ)
-  N = length(user_parameters.charge_numbers)
-  molfractions!(y, ϕ)
-  sumyz = zero(ϕ)
-  for i in 1:N
-    sumyz += user_parameters.charge_numbers[i] * y[i]
-  end
-  return F * c̄ * sumyz
-end
-
 function reaction!(y, u, node, data)
   tmp = get_tmp(Y, u)
-  y[1] = -spacecharge!(tmp, u[1])
+  y[1] =
+    -JuliaMPBSolver.Postprocess.compute_spacecharge(tmp, u[1], user_parameters)
   return nothing
 end
 
@@ -147,20 +125,6 @@ sol = solve(
   maxiters = 1000,
 )
 
-function concentrations(sol)
-  n = size(sol, 2)
-  N = length(user_parameters.charge_numbers)
-  c = zeros(N, n)
-  y = zeros(N)
-  for i in 1:n
-    molfractions!(y, sol[1, i])
-    for j in 1:N
-      c[j, i] = c̄ * y[j]
-    end
-  end
-  return c
-end
-
 function bee!(y, ϕ)
   N = length(user_parameters.charge_numbers)
   for i in 1:N
@@ -186,25 +150,8 @@ end
 
 nv = nodevolumes(pbsystem)
 
-function spacecharges(sol)
-  c = concentrations(sol)
-  n = size(sol, 2)
-  nv0 = copy(nv)
-  nv0[(n÷2+2):end] .= 0
-  nv0[n÷2+1] /= 0.5
-  nvl = copy(nv)
-  tmp = zeros(length(user_parameters.charge_numbers))
-  nvl[1:(n÷2)] .= 0
-  nvl[n÷2+1] /= 0.5
-  cdens = [spacecharge!(tmp, sol[1, i]) for i in 1:n]
-  return cdens ⋅ nv0, cdens ⋅ nvl
-end
-
-spacecharges(sol)
-
-(q, -q)
-
-c = concentrations(sol)
+c =
+  JuliaMPBSolver.Postprocess.compute_concentrations(sol[1, :], user_parameters)
 
 ε_r =
   user_parameters.dielectric_susceptibility ./ (
@@ -221,7 +168,10 @@ function plotsol(sol; size = (600, 400))
   ax1.grid()
   ax1r = ax1.twinx()
 
-  c = concentrations(sol)
+  c = JuliaMPBSolver.Postprocess.compute_concentrations(
+    sol[1, :],
+    user_parameters,
+  )
   cm = c[1, :] ⋅ nv / (mol / dm^3) / grid_parameters.domain_size
   cp = c[2, :] ⋅ nv / (mol / dm^3) / grid_parameters.domain_size
   c0 = -(sum(c, dims = 1) .- c̄)

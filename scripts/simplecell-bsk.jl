@@ -15,7 +15,6 @@ using PythonPlot
 using JuliaMPBSolver
 
 begin
-  const χ_S = 78.49 - 1
   const F = ph"N_A" * ph"e"
   const K = ufac"K"
   const nm = ufac"nm"
@@ -27,8 +26,6 @@ begin
   const RT = ph"R" * T
 end
 
-const f_model = 1
-
 begin
   const floattype = Float64
   const L = 10.0nm # computational domain size
@@ -38,18 +35,39 @@ begin
   const E0 = floattype(10V / nm) # decrement parameter
   const a = 5.0 / E0^2 # decrement parameter in χ(E)
   const q = nel * ph"e" / ufac"nm^2" # surface charge
-  const c_bulk = [M_bulk, M_bulk] * mol / dm^3 # bulk  concentrations
-  const z = floattype[-1, 1] # species charge numbers
   const c̄ = 55.508mol / dm^3 # summary molar concentration
   const ε_0 = floattype(ph"ε_0")
 end
 
-@assert dot(c_bulk, z) == 0
+const z = [-1, 1]
+const c_bulk = [M_bulk, M_bulk] * mol / dm^3 # bulk  concentrations
+const c0_bulk = c̄ - sum(c_bulk) # solvent bulk molar concentration
+
+# Parameters
+user_parameters = JuliaMPBSolver.Parameters.UserParameters(
+  273.15 + 25 * JuliaMPBSolver.Units.K,
+  78.49 - 1,
+  0.0,
+  0.0,
+  z,
+  c̄,
+  c_bulk,
+  c0_bulk,
+  true,
+)
 
 begin
-  const c0_bulk = c̄ - sum(c_bulk) # solvent bulk molar concentration
-  const l_debye = sqrt((1 + χ_S) * ε_0 * RT / (F^2 * c_bulk[1])) # Debye length
-  const dlcap0 = sqrt(2 * (1 + χ_S) * ε_0 * F^2 * c_bulk[1] / RT) # Double layer capacitance at point of zero charge (0V)
+  const l_debye = sqrt(
+    (1 + user_parameters.dielectric_susceptibility) * ε_0 * RT /
+    (F^2 * c_bulk[1]),
+  ) # Debye length
+  const dlcap0 = sqrt(
+    2 *
+    (1 + user_parameters.dielectric_susceptibility) *
+    ε_0 *
+    F^2 *
+    c_bulk[1] / RT,
+  ) # Double layer capacitance at point of zero charge (0V)
 end
 
 grid_parameters = JuliaMPBSolver.Grid.GeometricGrid(
@@ -64,42 +82,21 @@ X = JuliaMPBSolver.Grid.get_coordinates(grid)
 
 const Y = DiffCache(ones(floattype, length(z))) # place for temporary data in callbacks
 
-function molfractions!(y, ϕ)
-  N = length(z)
-  for i in 1:N
-    y[i] = exp(-z[i] * ϕ * F / RT) * c_bulk[i] / c0_bulk
-  end
-  denom = 1.0 / (one(ϕ) + f_model * sum(y))
-  for i in 1:N
-    y[i] = y[i] * denom
-  end
-  return nothing
-end
-
 function flux!(y, u, edge, data)
   eins = one(eltype(u))
   h = floattype(edgelength(edge))
   E = (u[1, 1] - u[1, 2]) / h
-  χ = χ_S / sqrt(eins + a * E^2)
+  χ = user_parameters.dielectric_susceptibility / sqrt(eins + a * E^2)
   ε = (eins + χ) * ε_0
   y[1] = ε * ((u[1, 1] - u[1, 2]) - lc^2 * (u[2, 1] - u[2, 2]))
   y[2] = u[1, 1] - u[1, 2]
   return nothing
 end
 
-function spacecharge!(y, ϕ)
-  N = length(z)
-  molfractions!(y, ϕ)
-  sumyz = zero(ϕ)
-  for i in 1:N
-    sumyz += z[i] * y[i]
-  end
-  return F * c̄ * sumyz
-end
-
 function reaction!(y, u, node, data)
   tmp = get_tmp(Y, u)
-  y[1] = -spacecharge!(tmp, u[1])
+  y[1] =
+    -JuliaMPBSolver.Postprocess.compute_spacecharge(tmp, u[1], user_parameters)
   y[2] = -u[2]
   return nothing
 end
@@ -128,20 +125,6 @@ sol = solve(
   maxiters = 1000,
 )
 
-function concentrations(sol)
-  n = size(sol, 2)
-  N = length(z)
-  c = zeros(N, n)
-  y = zeros(N)
-  for i in 1:n
-    molfractions!(y, sol[1, i])
-    for j in 1:N
-      c[j, i] = c̄ * y[j]
-    end
-  end
-  return c
-end
-
 function bee!(y, ϕ)
   N = length(z)
   for i in 1:N
@@ -166,28 +149,11 @@ end
 
 nv = nodevolumes(pbsystem)
 
-function spacecharges(sol)
-  c = concentrations(sol)
-  n = size(sol, 2)
-  nv0 = copy(nv)
-  nv0[(n÷2+2):end] .= 0
-  nv0[n÷2+1] /= 0.5
-  nvl = copy(nv)
-  tmp = zeros(length(z))
-  nvl[1:(n÷2)] .= 0
-  nvl[n÷2+1] /= 0.5
-  cdens = [spacecharge!(tmp, sol[1, i]) for i in 1:n]
-  return cdens ⋅ nv0, cdens ⋅ nvl
-end
-
-spacecharges(sol)
-
-(q, -q)
-
-c = concentrations(sol)
+c =
+  JuliaMPBSolver.Postprocess.compute_concentrations(sol[1, :], user_parameters)
 
 ε_r =
-  χ_S ./ (
+  user_parameters.dielectric_susceptibility ./ (
     a *
     ((sol[1, 2:end] - sol[1, 1:(end-1)]) ./ (X[2:end] - X[1:(end-1)])) .^ 2 .+
     1
@@ -201,7 +167,10 @@ function plotsol(sol; size = (600, 400))
   ax1.grid()
   ax1r = ax1.twinx()
 
-  c = concentrations(sol)
+  c = JuliaMPBSolver.Postprocess.compute_concentrations(
+    sol[1, :],
+    user_parameters,
+  )
   cm = c[1, :] ⋅ nv / (mol / dm^3) / L
   cp = c[2, :] ⋅ nv / (mol / dm^3) / L
   c0 = -(sum(c, dims = 1) .- c̄)

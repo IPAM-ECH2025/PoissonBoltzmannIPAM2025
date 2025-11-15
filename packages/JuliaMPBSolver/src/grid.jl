@@ -26,13 +26,8 @@ function add_boundary_face!(
   region_label::Int,
   tolerance::AbstractFloat,
 )
-  return bfacemask!(
-    grid,
-    [x_position],
-    [x_position],
-    region_label,
-    tol = tolerance,
-  )
+  bfacemask!(grid, [x_position], [x_position], region_label, tol = tolerance)
+  return nothing
 end
 
 function create_half_cell(grid::GeometricGrid)

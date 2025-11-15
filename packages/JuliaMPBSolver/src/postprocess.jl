@@ -101,7 +101,7 @@ function compute_gradient(y::AbstractVector, x::AbstractVector)
   # an array of length n - 1, where n is the length of x. 
   @assert length(y) == length(x)
 
-  return (y[2:end] - y[1:end-1]) ./ (x[2:end] - x[1:end-1])
+  return (y[2:end] - y[1:(end-1)]) ./ (x[2:end] - x[1:(end-1)])
 end
 
 export compute_mole_fractions!,

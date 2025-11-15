@@ -12,4 +12,7 @@ using .Grid
 include("postprocess.jl")
 using .Postprocess
 
+include("equations.jl")
+using .Equations
+
 end

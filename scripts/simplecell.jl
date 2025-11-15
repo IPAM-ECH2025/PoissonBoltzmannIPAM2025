@@ -102,20 +102,16 @@ function reaction!(y, u, node, data)
   return nothing
 end
 
-function bcondition!(y, u, bnode, data)
-  boundary_neumann!(y, u, bnode, species = 1, region = 2, value = -q)
-  boundary_neumann!(y, u, bnode, species = 1, region = 1, value = q)
-  return nothing
-end
-
 pbsystem = VoronoiFVM.System(
   grid;
   reaction = reaction!,
   flux = flux!,
-  bcondition = bcondition!,
   species = [1],
   valuetype = floattype,
 )
+
+JuliaMPBSolver.Equations.add_boundary_charge!(pbsystem, 1, 2, -q)
+JuliaMPBSolver.Equations.add_boundary_charge!(pbsystem, 1, 1, q)
 
 sol = solve(
   pbsystem,

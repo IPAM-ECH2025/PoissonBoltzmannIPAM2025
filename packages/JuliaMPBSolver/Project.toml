@@ -7,11 +7,13 @@ version = "0.1.0"
 ExtendableGrids = "cfc395e8-590f-11e8-1f13-43a2532b2fa8"
 LessUnitful = "f29f6376-6e90-4d80-80c9-fb8ec61203d5"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+VoronoiFVM = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 
 [compat]
 ExtendableGrids = "1.14.0"
 LessUnitful = "1.2.1"
 Unitful = "1.25.1"
+VoronoiFVM = "2.13.0"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

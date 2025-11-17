@@ -682,7 +682,7 @@ restart_button() = html"""
 # ╠═73791e32-0cb7-4feb-93b1-2933ac662a0c
 # ╠═7d5cf0bf-515f-46a7-9970-742911e27974
 # ╠═3ef203e9-7beb-4b28-b62c-f63b12e0d628
-# ╠═31bb7711-abd0-42b3-86cf-577cddc104d7
+# ╟─31bb7711-abd0-42b3-86cf-577cddc104d7
 # ╠═2837efc4-3f0a-4bc6-82f2-861b94df6af3
 # ╠═89e8a56c-9a28-407f-9490-7c5acd2ffb3d
 # ╠═8af12f1c-d35b-4cc9-8185-1bb5adbb69e8

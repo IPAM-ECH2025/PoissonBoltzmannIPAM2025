@@ -155,7 +155,7 @@ begin
     const mol = ufac"mol"
     const T = (273.15 + 25) * ufac"K"
     const RT = ph"R" * T
-	const c̄ = 55.508mol / dm^3 # summary molar concentration
+    const c̄ = 55.508mol / dm^3 # summary molar concentration
     const ε_0 = ph"ε_0"
 end
 
@@ -183,7 +183,7 @@ const N = length(z)
 const c_avg = fill(M_avg * mol / dm^3, N)
 
 # ╔═╡ 6f08912b-f401-4d4b-96f1-a6404ca4027f
-surfcharge(n)=n * ph"e" / ufac"nm^2"
+surfcharge(n) = n * ph"e" / ufac"nm^2"
 
 # ╔═╡ cf2b2ef6-e407-4424-9004-aba5b6855bdd
 const q = surfcharge(n_e) # surface charge
@@ -192,7 +192,7 @@ const q = surfcharge(n_e) # surface charge
 const c0_avg = c̄ - sum(c_avg) # solvent bulk molar concentration
 
 # ╔═╡ d65b73d4-28f5-4cf9-9491-9fb545afe2ba
-    const l_debye = sqrt((1 + χ_S) * ε_0 * RT / (F^2 * c_avg[1])) |> u"nm" 
+const l_debye = sqrt((1 + χ_S) * ε_0 * RT / (F^2 * c_avg[1])) |> u"nm"
 
 # ╔═╡ 869a0bba-3cc8-459f-8dcd-d70c111df4d4
 md"""
@@ -206,7 +206,7 @@ begin
 
     X0 = geomspace(0, L / 2, hmin, hmax)
     X1 = geomspace(L / 2, L, hmax, hmin)
-	grid = simplexgrid(glue(X0, X1))
+    grid = simplexgrid(glue(X0, X1))
     bfacemask!(grid, [L / 2], [L / 2], 3, tol = 1.0e-10 * nm)
 end
 
@@ -220,27 +220,27 @@ md"""
 
 # ╔═╡ 099c8ab7-1432-4ff1-9fe8-70e085430cfa
 Base.@kwdef mutable struct PBData
-	c_ref::Vector{Float64}=c_avg
-	c_avg::Vector{Float64}=c_avg
-	c̄::Float64=c̄
-	c0_ref::Float64=c̄-sum(c_ref)
-	q::Float64=q
-	z::Vector{Float64}=z
-	N::Int=length(z)
-	a::Float64=a
-	E_0::Float64=E_0
-	f_mod::Bool=f_mod
-	F::Float64=F
-	RT::Float64=RT
-	ε_0::Float64=ε_0
-	χ_S::Float64=χ_S
-	iϕ::Int=1
-	cache = DiffCache(ones(Float64, length(z))) 
+    c_ref::Vector{Float64} = c_avg
+    c_avg::Vector{Float64} = c_avg
+    c̄::Float64 = c̄
+    c0_ref::Float64 = c̄ - sum(c_ref)
+    q::Float64 = q
+    z::Vector{Float64} = z
+    N::Int = length(z)
+    a::Float64 = a
+    E_0::Float64 = E_0
+    f_mod::Bool = f_mod
+    F::Float64 = F
+    RT::Float64 = RT
+    ε_0::Float64 = ε_0
+    χ_S::Float64 = χ_S
+    iϕ::Int = 1
+    cache = DiffCache(ones(Float64, length(z)))
 end
 
 # ╔═╡ e3123f2a-9607-4b93-8568-dde3091a40ce
 function molfractions!(y, ϕ, c_ref, c0_ref, data)
-	(;z, N, f_mod, F, RT)=data
+    (; z, N, f_mod, F, RT) = data
     for ic in 1:N
         y[ic] = exp(-z[ic] * ϕ * F / RT) * c_ref[ic] / c0_ref
     end
@@ -252,12 +252,12 @@ function molfractions!(y, ϕ, c_ref, c0_ref, data)
 end
 
 # ╔═╡ 03ac2f7e-1d6b-419b-a4cb-9e4a531ab9f1
-function concentrations(sol, data; c_ref=data.c_ref)
-	(;c̄, iϕ, N)=data
+function concentrations(sol, data; c_ref = data.c_ref)
+    (; c̄, iϕ, N) = data
     n = size(sol, 2)
     c = zeros(N, n)
     y = zeros(N)
-	c0_ref=data.c̄-sum(c_ref)
+    c0_ref = data.c̄ - sum(c_ref)
     for iz in 1:n
         molfractions!(y, sol[data.iϕ, iz], c_ref, c0_ref, data)
         for ic in 1:N
@@ -268,21 +268,21 @@ function concentrations(sol, data; c_ref=data.c_ref)
 end
 
 # ╔═╡ d3bcbe56-761d-4897-9581-ffb71bba0a16
-function avgconcentrations(sol, sys; data=data(sys), c_ref=data.c_ref)
-	c=concentrations(sol, data; c_ref)
-	(;N=data)
-	cavg=zeros(N)
-	nv=nodevolumes(sys)
-	L=sum(nv)
-	for ic=1:N
-		cavg[ic]=nv⋅c[ic,:]/L
-	end
-	return cavg
+function avgconcentrations(sol, sys; data = data(sys), c_ref = data.c_ref)
+    c = concentrations(sol, data; c_ref)
+    (; N = data)
+    cavg = zeros(N)
+    nv = nodevolumes(sys)
+    L = sum(nv)
+    for ic in 1:N
+        cavg[ic] = nv ⋅ c[ic, :] / L
+    end
+    return cavg
 end
 
 # ╔═╡ 0c914971-48a0-4fee-996f-90bb156f8552
 function flux!(y, u, edge, data)
-	(; χ_S, a, ε_0,iϕ) = data
+    (; χ_S, a, ε_0, iϕ) = data
     eins = one(eltype(u))
     h = edgelength(edge)
     E = (u[iϕ, 1] - u[iϕ, 2]) / h
@@ -293,17 +293,17 @@ function flux!(y, u, edge, data)
 end
 
 # ╔═╡ 8adfa102-417a-4106-a387-0cc16788460a
-function relpermittivity(sol,data; grid)
-	(;χ_S, a, iϕ)= data
-	X=grid[Coordinates][1,:]
-return χ_S ./ (a * ((sol[iϕ, 2:end] - sol[iϕ, 1:(end - 1)]) ./ (X[2:end] - X[1:(end - 1)])) .^ 2 .+ 1) .+ 1
+function relpermittivity(sol, data; grid)
+    (; χ_S, a, iϕ) = data
+    X = grid[Coordinates][1, :]
+    return χ_S ./ (a * ((sol[iϕ, 2:end] - sol[iϕ, 1:(end - 1)]) ./ (X[2:end] - X[1:(end - 1)])) .^ 2 .+ 1) .+ 1
 
 end
 
 # ╔═╡ b5ed07a7-d5a8-4eaf-9592-7a3445e06d26
 function spacecharge!(y, ϕ, c_ref, c0_ref, data)
-	(;N, F,c_ref, c0_ref, c̄, z ) = data
-	molfractions!(y, ϕ, c_ref, c0_ref, data)
+    (; N, F, c_ref, c0_ref, c̄, z) = data
+    molfractions!(y, ϕ, c_ref, c0_ref, data)
     sumyz = zero(ϕ)
     for i in 1:N
         sumyz += z[i] * y[i]
@@ -313,7 +313,7 @@ end
 
 # ╔═╡ 041890d8-491c-4ca4-a80a-3e31e5b7a8ba
 function reaction!(y, u, node, data)
-	(;cache, c_ref, c0_ref, iϕ) = data
+    (; cache, c_ref, c0_ref, iϕ) = data
     tmp = get_tmp(data.cache, u)
     y[iϕ] = -spacecharge!(tmp, u[iϕ], c_ref, c0_ref, data)
     return nothing
@@ -338,13 +338,14 @@ Given ``q``, ``c_{ref}`` solve  ([MPB](#MPB-–-Modified-Poisson-Boltzmann)).
 
 # ╔═╡ 5b34f6d3-f4d4-4f2a-8a0a-f9772f7818cc
 function MPBSystem(grid, data)
-	return VoronoiFVM.System(
-    grid;
-	data,
-    reaction = reaction!,
-    flux = flux!,
-    bcondition = bcondition!,
-    species = [1])
+    return VoronoiFVM.System(
+        grid;
+        data,
+        reaction = reaction!,
+        flux = flux!,
+        bcondition = bcondition!,
+        species = [1]
+    )
 end
 
 # ╔═╡ 2bb0f3a9-abdf-4368-8ce4-2af9a8ad14d9
@@ -355,13 +356,13 @@ $(@bind M1_ref confirm(PlutoUI.Slider(0.1:0.1:10, default=1, show_value=true),la
 """
 
 # ╔═╡ e684c78f-4663-46ae-abd0-002a58985461
-data1=PBData(c_ref=fill(M1_ref*mol/dm^3,2), q=surfcharge(n1_e));
+data1 = PBData(c_ref = fill(M1_ref * mol / dm^3, 2), q = surfcharge(n1_e));
 
 # ╔═╡ 6e7dec28-af3f-48f4-bc9f-63852504d186
-sys1=MPBSystem(grid,data1);
+sys1 = MPBSystem(grid, data1);
 
 # ╔═╡ 0f05cb3b-50f6-4298-b3c8-19dda854b203
-sol1=solve(sys1);
+sol1 = solve(sys1);
 
 # ╔═╡ 56b5138c-6d79-4957-9bab-232c8cd10fa3
 md"""
@@ -370,23 +371,23 @@ md"""
 
 # ╔═╡ 1bd01480-309a-44bc-b130-8a5be25e71ec
 function extcref(cref0, data)
-	(;z, N)=data
-	push!(copy(cref0),-z[1:N-1]⋅cref0/z[N] )
+    (; z, N) = data
+    return push!(copy(cref0), -z[1:(N - 1)] ⋅ cref0 / z[N])
 end
 
 # ╔═╡ 3c6728cc-28ed-4829-a5f2-f0eed91282c9
-lastsol=unknowns(sys1, inival=0)
+lastsol = unknowns(sys1, inival = 0)
 
 # ╔═╡ b7ccc508-71d2-4f84-be64-4de290c1e2c5
 function clonedata(data0, c_ref)
-	data=deepcopy(data0)
-	data.c_ref.=c_ref
-	data.c0_ref = c̄ - sum(data.c_ref)
-	return data
+    data = deepcopy(data0)
+    data.c_ref .= c_ref
+    data.c0_ref = c̄ - sum(data.c_ref)
+    return data
 end
 
 # ╔═╡ 4589c222-126a-4995-b637-baf6ad68ba5d
-cb=(0.01:0.01:1)*mol/dm^3
+cb = (0.01:0.01:1) * mol / dm^3
 
 # ╔═╡ 770b30d3-0cec-41c7-bad8-4245a8e0631b
 md"""
@@ -396,46 +397,50 @@ $(@bind M2_avg confirm(PlutoUI.Slider(0.1:0.1:10, default=5, show_value=true),la
 """
 
 # ╔═╡ 39554f93-18b7-4b87-a803-2777b2277b32
-function cavg(c_ref;q=surfcharge(n2_e), sys=sys1, kwargs...)
-		data=deepcopy(VoronoiFVM.data(sys))
-		data=clonedata(data,extcref(c_ref, data))
-		data.q=q
-	    (; c̄)= data
-		state=VoronoiFVM.SystemState(sys;data)
-		sol=solve!(state; inival=0,kwargs...)
-		lastsol.=sol
-		ca=avgconcentrations(sol,sys; data)
-		return [ca[1]], sol
+function cavg(c_ref; q = surfcharge(n2_e), sys = sys1, kwargs...)
+    data = deepcopy(VoronoiFVM.data(sys))
+    data = clonedata(data, extcref(c_ref, data))
+    data.q = q
+    (; c̄) = data
+    state = VoronoiFVM.SystemState(sys; data)
+    sol = solve!(state; inival = 0, kwargs...)
+    lastsol .= sol
+    ca = avgconcentrations(sol, sys; data)
+    return [ca[1]], sol
 end
 
 # ╔═╡ 75e46b6c-0736-42af-990f-d5a7fc9fdd95
-ca=[ cavg([c];q=surfcharge(n_e), sys=sys1, verbose="",damp_initial=0.1)[1][1]  for c in cb]
+ca = [ cavg([c]; q = surfcharge(n_e), sys = sys1, verbose = "", damp_initial = 0.1)[1][1]  for c in cb]
 
 # ╔═╡ 8bafe67d-ffd1-4b2b-90d5-0e7e364ce050
 let
-	PythonPlot.clf()
+    PythonPlot.clf()
     fig, ax = pyplot.subplots(1, 1)
-	fig.set_size_inches(8,2)
-	ax.grid()
-	ax.plot(cb,ca)
-	PythonPlot.gcf()
+    fig.set_size_inches(8, 2)
+    ax.grid()
+    ax.plot(cb, ca)
+    PythonPlot.gcf()
 end
 
 # ╔═╡ 8fd77ff6-ed4c-4c02-bc57-d6ec91b9fba2
-c2_avg=[M2_avg*mol/dm^3]
+c2_avg = [M2_avg * mol / dm^3]
 
 # ╔═╡ 7cd7090b-08fe-4588-8179-f86e09f874b5
-res=nlsolve( c_ref->cavg(c_ref; 
-						 verbose="", 
-						 damp_initial=0.1)[1]-c2_avg,
-			 c2_avg*0.1, 
-			 ftol=1.0e-14)
+res = nlsolve(
+    c_ref -> cavg(
+        c_ref;
+        verbose = "",
+        damp_initial = 0.1
+    )[1] - c2_avg,
+    c2_avg * 0.1,
+    ftol = 1.0e-14
+)
 
 # ╔═╡ fee4a70b-4da4-45ff-b3af-ef1177113e3f
-c2_ref=extcref(res.zero, VoronoiFVM.data(sys1))
+c2_ref = extcref(res.zero, VoronoiFVM.data(sys1))
 
 # ╔═╡ 16c77b3f-84ee-46ad-b828-7fb60d5eba57
-sol2=cavg(res.zero;sys=sys1, verbose="")[2];
+sol2 = cavg(res.zero; sys = sys1, verbose = "")[2];
 
 # ╔═╡ d84b0ad9-0c3c-48b2-b5b7-cfc7d532bdd9
 md"""
@@ -443,18 +448,18 @@ md"""
 """
 
 # ╔═╡ 258ff2ba-c6c1-4d59-8d46-64cecc1059e9
-function ICMPBSystem(;data=PBData(), generic=VoronoiFVM.nofunc)
+function ICMPBSystem(; data = PBData(), generic = VoronoiFVM.nofunc)
     sys = VoronoiFVM.System(
         grid;
-		data,
+        data,
         generic,
         flux = flux!,
         bcondition = bcondition!,
         unknown_storage = :sparse
     )
-    enable_species!(sys,data.iϕ, [1])
-    for ic in 1:data.N-1
-        enable_boundary_species!(sys, data.iϕ+ic, [3])
+    enable_species!(sys, data.iϕ, [1])
+    for ic in 1:(data.N - 1)
+        enable_boundary_species!(sys, data.iϕ + ic, [3])
     end
     return sys
 end
@@ -469,7 +474,7 @@ const nv = nodevolumes(sys3_0);
 const idx = unknown_indices(unknowns(sys3_0));
 
 # ╔═╡ ca58971d-515e-491b-b7b8-2ebed16409c4
-idx[2,i3]
+idx[2, i3]
 
 # ╔═╡ 4445180b-3e7b-4315-8d6e-37c02a9886eb
 md"""
@@ -479,47 +484,47 @@ $(@bind M3_avg confirm(PlutoUI.Slider(0.1:0.1:10, default=5, show_value=true),la
 """
 
 # ╔═╡ 30a93ebe-43a6-4ce9-afe5-de8cb3cc9a5d
-c3_avg=fill(M3_avg*mol/dm^3,2)
+c3_avg = fill(M3_avg * mol / dm^3, 2)
 
 # ╔═╡ 633ec843-2aaa-46b6-beda-cd1f2e0ab430
-data3=PBData(c_avg=c3_avg, c_ref=0.5*c3_avg, q=surfcharge(n3_e))
+data3 = PBData(c_avg = c3_avg, c_ref = 0.5 * c3_avg, q = surfcharge(n3_e))
 
 # ╔═╡ 37581680-dcfd-46f7-abe3-7b64338a5c07
 function xreaction!(f, u, sys)
-	data=data3 #VoronoiFVM.data(sys)
-	(;cache, iϕ, N,z, F, c_avg, c̄) = data
-	y=get_tmp(cache,u)
-    c_ref = [u[idx[ic+iϕ, i3]] for ic in 1:N-1]
- 	push!(c_ref,-z[1:N-1]⋅c_ref/z[N])
-	c0_ref=c̄-sum(c_ref) 
-	L=sum(nv)
-	
-	for ic=1:N-1
-		f[idx[ic+iϕ,i3]]=0
-	end
-	
-	for iv in 1:length(nv)
+    data = data3 #VoronoiFVM.data(sys)
+    (; cache, iϕ, N, z, F, c_avg, c̄) = data
+    y = get_tmp(cache, u)
+    c_ref = [u[idx[ic + iϕ, i3]] for ic in 1:(N - 1)]
+    push!(c_ref, -z[1:(N - 1)] ⋅ c_ref / z[N])
+    c0_ref = c̄ - sum(c_ref)
+    L = sum(nv)
+
+    for ic in 1:(N - 1)
+        f[idx[ic + iϕ, i3]] = 0
+    end
+
+    for iv in 1:length(nv)
         molfractions!(y, u[idx[iϕ, iv]], c_ref, c0_ref, data)
-	    f[idx[iϕ, iv]] = 0
+        f[idx[iϕ, iv]] = 0
         for ic in 1:N
             f[idx[iϕ, iv]] -= y[ic] * c̄ * nv[iv] * z[ic] * F
-		end
-	    for ic in 1:N-1
-	        f[idx[ic+iϕ, i3]] += y[ic] * c̄ * nv[iv]
-		end
+        end
+        for ic in 1:(N - 1)
+            f[idx[ic + iϕ, i3]] += y[ic] * c̄ * nv[iv]
+        end
     end
-	for ic=1:N-1
-		f[idx[ic+iϕ,i3]] = f[idx[ic+iϕ,i3]]-c_avg[ic]*L
-	end
+    for ic in 1:(N - 1)
+        f[idx[ic + iϕ, i3]] = f[idx[ic + iϕ, i3]] - c_avg[ic] * L
+    end
     return nothing
 end
 
 
 # ╔═╡ e5b3dd26-7df7-41cf-ad5f-887d95f73135
-sys3=ICMPBSystem(data=data3,generic=xreaction!)
+sys3 = ICMPBSystem(data = data3, generic = xreaction!)
 
 # ╔═╡ 64f4c78a-22b3-4c46-a4ab-59cf0b511756
-state3=VoronoiFVM.SystemState(sys3; data=data3)
+state3 = VoronoiFVM.SystemState(sys3; data = data3)
 
 # ╔═╡ a72ee1be-e1ee-49de-a5d5-4a7699236cfa
 state3.matrix
@@ -527,11 +532,11 @@ state3.matrix
 # ╔═╡ 73791e32-0cb7-4feb-93b1-2933ac662a0c
 begin
     inival3 = unknowns(sys3, inival = 0.0)
-    inival3[2:N, i3] .= c3_avg[1:N-1]/2
+    inival3[2:N, i3] .= c3_avg[1:(N - 1)] / 2
 end;
 
 # ╔═╡ 7d5cf0bf-515f-46a7-9970-742911e27974
-sol3=solve!(state3; inival=inival3, verbose="n", damp_initial=0.5)
+sol3 = solve!(state3; inival = inival3, verbose = "n", damp_initial = 0.5)
 
 # ╔═╡ 8af12f1c-d35b-4cc9-8185-1bb5adbb69e8
 html"""<hr>"""
@@ -542,25 +547,25 @@ md"""
 """
 
 # ╔═╡ fb1c3580-149a-41d6-97eb-e3ce76be331b
-myround(x)=round(x,sigdigits=4)
+myround(x) = round(x, sigdigits = 4)
 
 # ╔═╡ 3fa9d05a-a3f6-4e07-9a5d-f53ee2126cae
-function plotsol(sol, sys; data=data(sys), grid=grid, c_ref=data.c_ref, size = (600, 400))
+function plotsol(sol, sys; data = data(sys), grid = grid, c_ref = data.c_ref, size = (600, 400))
     PythonPlot.clf()
     fig, ax = pyplot.subplots(2, 1)
-	fig.set_size_inches(size[1]/100, size[2]/100)
+    fig.set_size_inches(size[1] / 100, size[2] / 100)
     ax1 = ax[0]
     ax2 = ax[1]
     ax1.grid()
     ax1r = ax1.twinx()
-	X=grid[Coordinates][1,:]
-	ε_r=relpermittivity(sol, data; grid)
-    c = concentrations(sol,data;c_ref)
+    X = grid[Coordinates][1, :]
+    ε_r = relpermittivity(sol, data; grid)
+    c = concentrations(sol, data; c_ref)
     c0 = -(sum(c, dims = 1) .- c̄)
     ax1.set_title("ϕ∈$(round.(Float64.(extrema(sol[1, :])), sigdigits = 3)), ε_r ∈$(round.(Float64.(extrema(ε_r)), sigdigits = 3))")
     ax1.plot(X / nm, sol[1, :], color = "green", linewidth = 2, label = "ϕ")
     ax1r.plot(X[1:(end - 1)] / nm, ε_r, color = "pink", linewidth = 3, label = L"ε_r")
- #   ax1.set_ylim(-10, 10)
+    #   ax1.set_ylim(-10, 10)
     ax1.set_xlabel("z/nm")
     ax1.set_ylabel("ϕ/V")
     ax1.legend(loc = (0.1, 0.1))
@@ -568,11 +573,11 @@ function plotsol(sol, sys; data=data(sys), grid=grid, c_ref=data.c_ref, size = (
     ax1r.set_ylim(0, 80)
 
     ax2.grid()
-	cavg=avgconcentrations(sol,sys; data, c_ref)
-	cm, cp = cavg[1]/(mol/dm^3), cavg[2]/(mol/dm^3)
-	crm, crp = c_ref[1]/(mol/dm^3), c_ref[2]/(mol/dm^3)
+    cavg = avgconcentrations(sol, sys; data, c_ref)
+    cm, cp = cavg[1] / (mol / dm^3), cavg[2] / (mol / dm^3)
+    crm, crp = c_ref[1] / (mol / dm^3), c_ref[2] / (mol / dm^3)
 
-	
+
     ax2.set_title("M_ref=$(myround.((crm, crp))),  M_avg=$(myround.((cm, cp)))")
     ax2.set_xlabel("z/nm")
     ax2.set_ylabel("c/(mol/L)")
@@ -589,16 +594,18 @@ function plotsol(sol, sys; data=data(sys), grid=grid, c_ref=data.c_ref, size = (
 end
 
 # ╔═╡ 97a6fd15-9e27-49ed-94f5-4b881d7a907c
-plotsol(sol1,sys1; size=(600,400))
+plotsol(sol1, sys1; size = (600, 400))
 
 # ╔═╡ c5a3e303-98a2-46a6-8cd9-8953248c5899
-plotsol(sol2,sys1, data=data(sys1);c_ref=c2_ref, size=(600,400))
+plotsol(sol2, sys1, data = data(sys1); c_ref = c2_ref, size = (600, 400))
 
 # ╔═╡ 13cb4936-ff78-4064-85c5-a7d51c4963e3
-plotsol(sol3,sys3;
-		data=data3,
-		c_ref=extcref(sol3[2:N,i3],data3),
-		size=(600,400))
+plotsol(
+    sol3, sys3;
+    data = data3,
+    c_ref = extcref(sol3[2:N, i3], data3),
+    size = (600, 400)
+)
 
 # ╔═╡ 784b4c3e-bb2a-4940-a83a-ed5e5898dfd4
 html"""<style>.dont-panic{ display: none }</style>"""

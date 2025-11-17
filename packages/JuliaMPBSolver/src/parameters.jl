@@ -10,7 +10,6 @@ struct UserParameters{F<:AbstractFloat,I<:Integer}
   charge_numbers::AbstractVector{<:I}
   total_concentration::F
   bulk_ion_concentrations::AbstractVector{<:F}
-  bulk_solvent_concentration::F
   boundary_electron_density::F
   electric_susceptibility_decrement_parameter::F
   use_bikerman_model::Bool
@@ -19,6 +18,7 @@ end
 struct ComputedParameters{F<:AbstractFloat}
   debye_length::F
   double_layer_capacitance::F
+  bulk_solvent_concentration::F
 end
 
 function UserParameters(;
@@ -29,7 +29,6 @@ function UserParameters(;
   charge_numbers::AbstractVector{<:Integer},
   total_concentration::AbstractFloat,
   bulk_ion_concentrations::AbstractVector{<:AbstractFloat},
-  bulk_solvent_concentration::AbstractFloat,
   boundary_electron_density::AbstractFloat,
   electric_susceptibility_decrement_parameter::AbstractFloat,
   use_bikerman_model::Bool,
@@ -43,7 +42,6 @@ function UserParameters(;
     charge_numbers,
     total_concentration,
     bulk_ion_concentrations,
-    bulk_solvent_concentration,
     boundary_electron_density,
     electric_susceptibility_decrement_parameter,
     use_bikerman_model,
@@ -65,7 +63,14 @@ function ComputedParameters(user_parameters::UserParameters)
     user_parameters.bulk_ion_concentrations[1] /
     Units.thermal_energy(user_parameters.temperature),
   )
-  return ComputedParameters(debye_length, double_layer_capacitance)
+  bulk_solvent_concentration =
+    user_parameters.total_concentration -
+    sum(user_parameters.bulk_ion_concentrations)
+  return ComputedParameters(
+    debye_length,
+    double_layer_capacitance,
+    bulk_solvent_concentration,
+  )
 end
 
 export UserParameters, ComputedParameters

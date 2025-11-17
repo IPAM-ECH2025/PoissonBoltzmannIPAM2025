@@ -26,23 +26,16 @@ begin
   const RT = ph"R" * T
 end
 
-begin
-  const nel = 20.0 * ph"e" / ufac"nm^2"# number of electrons/nm^2 at interfaces
-  const M_bulk = 1 # (bulk) molarity at center of domain
-  const E0 = 10V / nm # decrement parameter
-  const a = 5.0 / E0^2 # decrement parameter in χ(E)
-end
+const nel = 20.0 * ph"e" / ufac"nm^2"# number of electrons/nm^2 at interfaces
+const M_bulk = 1 # (bulk) molarity at center of domain
+const E0 = 10V / nm # decrement parameter
+const a = 5.0 / E0^2 # decrement parameter in χ(E)
 
-begin
-  const q = nel  # surface charge
-
-  const c̄ = 55.508mol / dm^3 # summary molar concentration
-  const ε_0 = ph"ε_0"
-end
+const q = nel  # surface charge
+const c̄ = 55.508mol / dm^3 # summary molar concentration
 
 const z = [-1, 1]
 const c_bulk = [M_bulk / abs(z[1]), M_bulk / abs(z[2])] * mol / dm^3 # bulk  concentrations
-const c0_bulk = c̄ - sum(c_bulk) # solvent bulk molar concentration
 
 # Parameters
 user_parameters = JuliaMPBSolver.Parameters.UserParameters(
@@ -53,7 +46,6 @@ user_parameters = JuliaMPBSolver.Parameters.UserParameters(
   z,
   c̄,
   c_bulk,
-  c0_bulk,
   nel,
   a,
   true,
@@ -73,8 +65,11 @@ grid_parameters = JuliaMPBSolver.Grid.GeometricGrid(
 grid = JuliaMPBSolver.Grid.create_full_cell(grid_parameters)
 X = JuliaMPBSolver.Grid.get_coordinates(grid)
 
-pbsystem =
-  JuliaMPBSolver.Equations.create_equation_system(grid, user_parameters)
+pbsystem = JuliaMPBSolver.Equations.create_equation_system(
+  grid,
+  user_parameters,
+  computed_parameters,
+)
 
 JuliaMPBSolver.Equations.add_boundary_charge!(pbsystem, 1, 2, -q)
 JuliaMPBSolver.Equations.add_boundary_charge!(pbsystem, 1, 1, q)
@@ -91,7 +86,8 @@ function bee!(y, ϕ)
   N = length(user_parameters.charge_numbers)
   for i in 1:N
     y[i] =
-      RT * log(c_bulk[i] / c0_bulk) / F - user_parameters.charge_numbers[i] * ϕ
+      RT * log(c_bulk[i] / computed_parameters.bulk_solvent_concentration) / F -
+      user_parameters.charge_numbers[i] * ϕ
   end
   return nothing
 end
@@ -112,9 +108,6 @@ end
 
 nv = nodevolumes(pbsystem)
 
-c =
-  JuliaMPBSolver.Postprocess.compute_concentrations(sol[1, :], user_parameters)
-
 ε_r =
   user_parameters.dielectric_susceptibility ./ (
     a *
@@ -133,6 +126,7 @@ function plotsol(sol; size = (600, 400))
   c = JuliaMPBSolver.Postprocess.compute_concentrations(
     sol[1, :],
     user_parameters,
+    computed_parameters,
   )
   cm = c[1, :] ⋅ nv / (mol / dm^3) / grid_parameters.domain_size
   cp = c[2, :] ⋅ nv / (mol / dm^3) / grid_parameters.domain_size

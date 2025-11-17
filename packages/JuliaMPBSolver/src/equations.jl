@@ -65,6 +65,7 @@ end
 function create_equation_system(
   grid::ExtendableGrid,
   user_parameters::UserParameters,
+  computed_parameters::ComputedParameters,
 )
   # Determine the precision of the floating-point numbers from the user parameters
   float_type = eltype(user_parameters.temperature)
@@ -93,7 +94,13 @@ function create_equation_system(
 
   function reaction!(y, u, node, data)
     local_tmp = get_tmp(tmp, u)
-    y[1] = -Postprocess.compute_spacecharge(local_tmp, u[1], user_parameters)
+    y[1] =
+      -Postprocess.compute_spacecharge(
+        local_tmp,
+        u[1],
+        user_parameters,
+        computed_parameters,
+      )
     return nothing
   end
 
@@ -127,9 +134,10 @@ end
 function create_and_run_full_cell_problem(
   grid_paramters::GeometricGrid,
   user_parameters::UserParameters,
+  computed_parameters::ComputedParameters,
 )
   grid = create_full_cell(grid_paramteters)
-  system = create_equation_system(grid, user_parameters)
+  system = create_equation_system(grid, user_parameters, computed_parameters)
 
   add_boundary_charge!(system, 1, 2, -Units.elementary_charge)
   add_boundary_charge!(system, 1, 1, Units.elementary_charge)

@@ -23,9 +23,9 @@ using Test
     coordinates = JuliaMPBSolver.Grid.get_coordinates(grid)
     solution = rand(length(coordinates))
     filename = "test_output.h5"
-    JuliaMPBSolver.DataOut.write_data!(filename, grid, solution)
+    JuliaMPBSolver.DataOut.write_hdf5_data!(filename, grid, solution)
     @test isfile(filename)
-    JuliaMPBSolver.DataOut.read_data(filename) == (coordinates, solution)
+    JuliaMPBSolver.DataOut.read_hdf5_data(filename) == (coordinates, solution)
     rm(filename)
   end
 end

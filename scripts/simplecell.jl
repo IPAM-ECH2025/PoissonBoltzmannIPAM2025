@@ -27,15 +27,14 @@ begin
 end
 
 begin
-  const floattype = Float64
-  const nel = 20 # number of electrons/nm^2 at interfaces
+  const nel = 20.0 * ph"e" / ufac"nm^2"# number of electrons/nm^2 at interfaces
   const M_bulk = 1 # (bulk) molarity at center of domain
   const E0 = 10V / nm # decrement parameter
   const a = 5.0 / E0^2 # decrement parameter in χ(E)
 end
 
 begin
-  const q = nel * ph"e" / ufac"nm^2" # surface charge
+  const q = nel  # surface charge
 
   const c̄ = 55.508mol / dm^3 # summary molar concentration
   const ε_0 = ph"ε_0"
@@ -55,22 +54,13 @@ user_parameters = JuliaMPBSolver.Parameters.UserParameters(
   c̄,
   c_bulk,
   c0_bulk,
+  nel,
+  a,
   true,
 )
 
-begin
-  const l_debye = sqrt(
-    (1 + user_parameters.dielectric_susceptibility) * ε_0 * RT /
-    (F^2 * c_bulk[1]),
-  ) # Debye length
-  const dlcap0 = sqrt(
-    2 *
-    (1 + user_parameters.dielectric_susceptibility) *
-    ε_0 *
-    F^2 *
-    c_bulk[1] / RT,
-  ) # Double layer capacitance at point of zero charge (0V)
-end
+computed_parameters =
+  JuliaMPBSolver.Parameters.ComputedParameters(user_parameters)
 
 # Grid generation
 grid_parameters = JuliaMPBSolver.Grid.GeometricGrid(
@@ -83,32 +73,8 @@ grid_parameters = JuliaMPBSolver.Grid.GeometricGrid(
 grid = JuliaMPBSolver.Grid.create_full_cell(grid_parameters)
 X = JuliaMPBSolver.Grid.get_coordinates(grid)
 
-const Y = DiffCache(ones(floattype, length(user_parameters.charge_numbers))) # place for temporary data in callbacks
-
-function flux!(y, u, edge, data)
-  eins = one(eltype(u))
-  h = floattype(edgelength(edge))
-  E = (u[1, 1] - u[1, 2]) / h
-  χ = user_parameters.dielectric_susceptibility / sqrt(eins + a * E^2)
-  ε = (eins + χ) * ε_0
-  y[1] = ε * ((u[1, 1] - u[1, 2]))
-  return nothing
-end
-
-function reaction!(y, u, node, data)
-  tmp = get_tmp(Y, u)
-  y[1] =
-    -JuliaMPBSolver.Postprocess.compute_spacecharge(tmp, u[1], user_parameters)
-  return nothing
-end
-
-pbsystem = VoronoiFVM.System(
-  grid;
-  reaction = reaction!,
-  flux = flux!,
-  species = [1],
-  valuetype = floattype,
-)
+pbsystem =
+  JuliaMPBSolver.Equations.create_equation_system(grid, user_parameters)
 
 JuliaMPBSolver.Equations.add_boundary_charge!(pbsystem, 1, 2, -q)
 JuliaMPBSolver.Equations.add_boundary_charge!(pbsystem, 1, 1, q)

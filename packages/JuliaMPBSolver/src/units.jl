@@ -28,11 +28,15 @@ const V = ufac"V"
 # Moles
 const mol = ufac"mol"
 
+# Vacuum permittivity
+const vacuum_permittivity = ph"ε_0"
+
 # Thermal energy
 thermal_energy(temperature) = ph"R" * temperature
 RT(x) = thermal_energy(x)
 
 # Export all constants and functions
-export F, K, nm, m, dm, angstrom, V, mol, thermal_energy, RT
+export F,
+  K, nm, m, dm, angstrom, V, mol, vacuum_permittivity, thermal_energy, RT
 
 end

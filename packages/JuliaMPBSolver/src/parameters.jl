@@ -1,5 +1,7 @@
 module Parameters
 
+using ..Units
+
 struct UserParameters{F<:AbstractFloat,I<:Integer}
   temperature::F
   dielectric_susceptibility::F
@@ -9,7 +11,14 @@ struct UserParameters{F<:AbstractFloat,I<:Integer}
   total_concentration::F
   bulk_ion_concentrations::AbstractVector{<:F}
   bulk_solvent_concentration::F
+  boundary_electron_density::F
+  electric_susceptibility_decrement_parameter::F
   use_bikerman_model::Bool
+end
+
+struct ComputedParameters{F<:AbstractFloat}
+  debye_length::F
+  double_layer_capacitance::F
 end
 
 function UserParameters(;
@@ -21,6 +30,8 @@ function UserParameters(;
   total_concentration::AbstractFloat,
   bulk_ion_concentrations::AbstractVector{<:AbstractFloat},
   bulk_solvent_concentration::AbstractFloat,
+  boundary_electron_density::AbstractFloat,
+  electric_susceptibility_decrement_parameter::AbstractFloat,
   use_bikerman_model::Bool,
 )
   @assert dot(bulk_ion_concentrations, charge_numbers) == 0
@@ -33,10 +44,30 @@ function UserParameters(;
     total_concentration,
     bulk_ion_concentrations,
     bulk_solvent_concentration,
+    boundary_electron_density,
+    electric_susceptibility_decrement_parameter,
     use_bikerman_model,
   )
 end
 
-export UserParameters
+function ComputedParameters(user_parameters::UserParameters)
+  debye_length = sqrt(
+    (1 + user_parameters.dielectric_susceptibility) *
+    Units.vacuum_permittivity *
+    Units.thermal_energy(user_parameters.temperature) /
+    (Units.F^2 * user_parameters.bulk_ion_concentrations[1]),
+  )
+  double_layer_capacitance = sqrt(
+    2 *
+    (1 + user_parameters.dielectric_susceptibility) *
+    Units.vacuum_permittivity *
+    Units.F^2 *
+    user_parameters.bulk_ion_concentrations[1] /
+    Units.thermal_energy(user_parameters.temperature),
+  )
+  return ComputedParameters(debye_length, double_layer_capacitance)
+end
+
+export UserParameters, ComputedParameters
 
 end

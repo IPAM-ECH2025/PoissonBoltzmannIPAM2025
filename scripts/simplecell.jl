@@ -14,28 +14,13 @@ using ForwardDiff
 using PythonPlot
 using JuliaMPBSolver
 
-begin
-  const F = ph"N_A" * ph"e"
-  const K = ufac"K"
-  const nm = ufac"nm"
-  const m = ufac"m"
-  const dm = ufac"dm"
-  const V = ufac"V"
-  const mol = ufac"mol"
-  const T = (273.15 + 25) * ufac"K"
-  const RT = ph"R" * T
-end
-
 const nel = 20.0 * ph"e" / ufac"nm^2"# number of electrons/nm^2 at interfaces
 const M_bulk = 1 # (bulk) molarity at center of domain
-const E0 = 10V / nm # decrement parameter
+const E0 = 10JuliaMPBSolver.Units.V / JuliaMPBSolver.Units.nm # decrement parameter
 const a = 5.0 / E0^2 # decrement parameter in χ(E)
-
-const q = nel  # surface charge
-const c̄ = 55.508mol / dm^3 # summary molar concentration
-
+const c̄ = 55.508JuliaMPBSolver.Units.M # summary molar concentration
 const z = [-1, 1]
-const c_bulk = [M_bulk / abs(z[1]), M_bulk / abs(z[2])] * mol / dm^3 # bulk  concentrations
+const c_bulk = [M_bulk / abs(z[1]), M_bulk / abs(z[2])] * JuliaMPBSolver.Units.M # bulk  concentrations
 
 # Parameters
 user_parameters = JuliaMPBSolver.Parameters.UserParameters(
@@ -56,10 +41,10 @@ computed_parameters =
 
 # Grid generation
 grid_parameters = JuliaMPBSolver.Grid.GeometricGrid(
-  domain_size = 10.0 * nm,
+  domain_size = 10.0 * JuliaMPBSolver.Units.nm,
   refinement = 4,
-  hmin = 1.0e-1 * nm,
-  hmax = 1.0 * nm,
+  hmin = 1.0e-1 * JuliaMPBSolver.Units.nm,
+  hmax = 1.0 * JuliaMPBSolver.Units.nm,
   use_offset = false,
 )
 grid = JuliaMPBSolver.Grid.create_full_cell(grid_parameters)
@@ -71,23 +56,18 @@ pbsystem = JuliaMPBSolver.Equations.create_equation_system(
   computed_parameters,
 )
 
-JuliaMPBSolver.Equations.add_boundary_charge!(pbsystem, 1, 2, -q)
-JuliaMPBSolver.Equations.add_boundary_charge!(pbsystem, 1, 1, q)
+JuliaMPBSolver.Equations.add_boundary_charge!(pbsystem, 1, 2, -nel)
+JuliaMPBSolver.Equations.add_boundary_charge!(pbsystem, 1, 1, nel)
 
-sol = solve(
-  pbsystem,
-  inival = 0.1,
-  verbose = "n",
-  damp_initial = 0.1,
-  maxiters = 1000,
-)
+sol = JuliaMPBSolver.Equations.solve_equation_system(pbsystem)
 
 function bee!(y, ϕ)
   N = length(user_parameters.charge_numbers)
   for i in 1:N
     y[i] =
-      RT * log(c_bulk[i] / computed_parameters.bulk_solvent_concentration) / F -
-      user_parameters.charge_numbers[i] * ϕ
+      JuliaMPBSolver.Units.thermal_energy(user_parameters.temperature) *
+      log(c_bulk[i] / computed_parameters.bulk_solvent_concentration) /
+      JuliaMPBSolver.Units.F - user_parameters.charge_numbers[i] * ϕ
   end
   return nothing
 end
@@ -128,16 +108,22 @@ function plotsol(sol; size = (600, 400))
     user_parameters,
     computed_parameters,
   )
-  cm = c[1, :] ⋅ nv / (mol / dm^3) / grid_parameters.domain_size
-  cp = c[2, :] ⋅ nv / (mol / dm^3) / grid_parameters.domain_size
+  cm = c[1, :] ⋅ nv / (JuliaMPBSolver.Units.M) / grid_parameters.domain_size
+  cp = c[2, :] ⋅ nv / (JuliaMPBSolver.Units.M) / grid_parameters.domain_size
   c0 = -(sum(c, dims = 1) .- c̄)
   e = bee(sol)
   ax1.set_title(
     "ϕ∈$(round.(Float64.(extrema(sol[1, :])), sigdigits = 3)), ε_r ∈$(round.(Float64.(extrema(ε_r)), sigdigits = 3))",
   )
-  ax1.plot(X / nm, sol[1, :], color = "green", linewidth = 2, label = "ϕ")
   ax1.plot(
-    X / nm,
+    X / JuliaMPBSolver.Units.nm,
+    sol[1, :],
+    color = "green",
+    linewidth = 2,
+    label = "ϕ",
+  )
+  ax1.plot(
+    X / JuliaMPBSolver.Units.nm,
     e[1, :],
     color = "blue",
     linewidth = 2,
@@ -145,7 +131,7 @@ function plotsol(sol; size = (600, 400))
     linestyle = "dotted",
   )
   ax1.plot(
-    X / nm,
+    X / JuliaMPBSolver.Units.nm,
     e[2, :],
     color = "red",
     linewidth = 2,
@@ -153,7 +139,7 @@ function plotsol(sol; size = (600, 400))
     label = L"ψ^+",
   )
   ax1r.plot(
-    X[1:(end-1)] / nm,
+    X[1:(end-1)] / JuliaMPBSolver.Units.nm,
     ε_r,
     color = "pink",
     linewidth = 3,
@@ -173,22 +159,22 @@ function plotsol(sol; size = (600, 400))
   ax2.set_ylim(0, 60)
 
   ax2.plot(
-    X / nm,
-    c[1, :] / (mol / dm^3),
+    X / JuliaMPBSolver.Units.nm,
+    c[1, :] / (JuliaMPBSolver.Units.M),
     color = "blue",
     linewidth = 2,
     label = L"c^-",
   )
   ax2.plot(
-    X / nm,
-    c[2, :] / (mol / dm^3),
+    X / JuliaMPBSolver.Units.nm,
+    c[2, :] / (JuliaMPBSolver.Units.M),
     color = "red",
     linewidth = 2,
     label = L"c^+",
   )
   ax2.plot(
-    X / nm,
-    c0[1, :] / (mol / dm^3),
+    X / JuliaMPBSolver.Units.nm,
+    c0[1, :] / (JuliaMPBSolver.Units.M),
     color = "green",
     linewidth = 2,
     label = L"c_{solvent}",

@@ -136,7 +136,7 @@ function create_and_run_full_cell_problem(
   user_parameters::UserParameters,
   computed_parameters::ComputedParameters,
 )
-  grid = create_full_cell(grid_paramteters)
+  grid = create_full_cell(grid_paramters)
   system = create_equation_system(grid, user_parameters, computed_parameters)
 
   add_boundary_charge!(system, 1, 2, -Units.elementary_charge)
@@ -148,6 +148,9 @@ function create_and_run_full_cell_problem(
 end
 
 export add_boundary_voltage!,
-  pin_pressure_value!, add_boundary_charge!, create_equation_system
+  pin_pressure_value!,
+  add_boundary_charge!,
+  create_equation_system,
+  solve_equation_system
 
 end

@@ -28,6 +28,9 @@ const V = ufac"V"
 # Moles
 const mol = ufac"mol"
 
+# Molarity
+const M = mol / dm^3
+
 # Vacuum permittivity
 const vacuum_permittivity = ph"ε_0"
 

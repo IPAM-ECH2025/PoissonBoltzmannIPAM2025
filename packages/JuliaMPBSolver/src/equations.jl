@@ -64,6 +64,14 @@ function create_equation_system(user_parameters::UserParameters)
   # Create a tmp vector for various function evaluations
   tmp = DiffCache(ones(float_type, length(user_parameters.charge_numbers)))
 
+  function flux!(y, u, edge, data)
+    ones = one(eltype(u))
+    edge_length = float_type(edgelength(edge))
+    electric_field = (u[1, 1] - u[1, 2]) / edge_length
+
+    return nothing
+  end
+
   return nothing
 end
 

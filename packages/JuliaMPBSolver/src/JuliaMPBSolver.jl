@@ -1,5 +1,15 @@
 module JuliaMPBSolver
 
-greet() = print("Hello World!")
+include("units.jl")
+using .Units
 
-end # module JuliaMPBSolver
+include("parameters.jl")
+using .Parameters
+
+include("grid.jl")
+using .Grid
+
+include("postprocess.jl")
+using .Postprocess
+
+end

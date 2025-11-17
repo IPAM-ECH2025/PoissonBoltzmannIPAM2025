@@ -27,5 +27,10 @@ using Test
     @test isfile(filename)
     JuliaMPBSolver.DataOut.read_hdf5_data(filename) == (coordinates, solution)
     rm(filename)
+
+    filename = "test_output.csv"
+    JuliaMPBSolver.DataOut.write_csv_data!(filename, solution)
+    @test isfile(filename)
+    rm(filename)
   end
 end

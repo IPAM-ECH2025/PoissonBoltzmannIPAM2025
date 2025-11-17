@@ -1,6 +1,8 @@
 module DataOut
 
 using HDF5
+using CSV
+using DataFrames
 using ExtendableGrids
 
 using ..Grid
@@ -37,6 +39,13 @@ function read_hdf5_data(filename::String, solution_name::String = "solution")
   return grid_coordinates, solution
 end
 
-export write_data!
+function write_csv_data!(filename::String, solution)
+  df = DataFrame(value = solution)
+  CSV.write(filename, df)
+
+  return nothing
+end
+
+export write_data!, read_hdf5_data
 
 end

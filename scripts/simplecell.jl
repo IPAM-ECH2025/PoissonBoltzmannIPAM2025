@@ -4,17 +4,11 @@ Pkg.activate(joinpath(@__DIR__, ".."))
 
 using LinearAlgebra
 using Interpolations
-using VoronoiFVM, ExtendableGrids
-using LaTeXStrings
-using LessUnitful, Unitful
-using PreallocationTools
-using LaTeXStrings
-using DoubleFloats
-using ForwardDiff
+using VoronoiFVM
 using PythonPlot
 using JuliaMPBSolver
 
-const nel = 20.0 * ph"e" / ufac"nm^2"# number of electrons/nm^2 at interfaces
+const nel = 20.0 * JuliaMPBSolver.Units.el_surface_density # number of electrons/nm^2 at interfaces
 const M_bulk = 1 # (bulk) molarity at center of domain
 const E0 = 10JuliaMPBSolver.Units.V / JuliaMPBSolver.Units.nm # decrement parameter
 const a = 5.0 / E0^2 # decrement parameter in χ(E)

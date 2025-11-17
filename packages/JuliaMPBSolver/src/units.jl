@@ -25,6 +25,12 @@ const angstrom = ufac"Å"
 # Voltage unit
 const V = ufac"V"
 
+# Electron charge
+const e = ph"e"
+
+# Electron surface density
+const el_surface_density = e / nm^2
+
 # Moles
 const mol = ufac"mol"
 

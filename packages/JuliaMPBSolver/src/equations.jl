@@ -78,14 +78,8 @@ function create_equation_system(
     edge_length = float_type(edgelength(edge))
     electric_field = (u[1, 1] - u[1, 2]) / edge_length
 
-    electric_susceptibility =
-      user_parameters.dielectric_susceptibility / sqrt(
-        ones +
-        user_parameters.electric_susceptibility_decrement_parameter *
-        electric_field^2,
-      )
-
-    permittivity = (ones + electric_susceptibility) * Units.vacuum_permittivity
+    permittivity =
+      Postprocess.compute_permittivity(electric_field, ones, user_parameters)
 
     y[1] = permittivity * (u[1, 1] - u[1, 2])
 
@@ -139,18 +133,39 @@ function create_and_run_full_cell_problem(
   grid = create_full_cell(grid_paramters)
   system = create_equation_system(grid, user_parameters, computed_parameters)
 
-  add_boundary_charge!(system, 1, 2, -Units.elementary_charge)
-  add_boundary_charge!(system, 1, 1, Units.elementary_charge)
+  add_boundary_charge!(system, 1, 2, -user_parameters.boundary_electron_density)
+  add_boundary_charge!(system, 1, 1, user_parameters.boundary_electron_density)
 
   solution = solve_equation_system(system)
 
-  return solution
+  X = get_coordinates(grid)
+
+  nodal_volumes = nodevolumes(system)
+
+  print(string(length(solution[1, :]), "\n"))
+
+  electric_field = Postprocess.compute_gradient(solution[1, :], X)
+
+  one_array = ones(length(electric_field))
+
+  print(string(length(one_array), "\n"))
+
+  relative_permittivity = Postprocess.compute_relative_permittivity(
+    electric_field,
+    one_array,
+    user_parameters,
+  )
+
+  print(string(length(relative_permittivity), "\n"))
+
+  return solution, X, nodal_volumes, relative_permittivity
 end
 
 export add_boundary_voltage!,
   pin_pressure_value!,
   add_boundary_charge!,
   create_equation_system,
-  solve_equation_system
+  solve_equation_system,
+  create_and_run_full_cell_problem
 
 end

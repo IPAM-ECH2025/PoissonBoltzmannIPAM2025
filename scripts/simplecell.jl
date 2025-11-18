@@ -41,19 +41,13 @@ grid_parameters = JuliaMPBSolver.Grid.GeometricGrid(
   hmax = 1.0 * JuliaMPBSolver.Units.nm,
   use_offset = false,
 )
-grid = JuliaMPBSolver.Grid.create_full_cell(grid_parameters)
-X = JuliaMPBSolver.Grid.get_coordinates(grid)
 
-pbsystem = JuliaMPBSolver.Equations.create_equation_system(
-  grid,
-  user_parameters,
-  computed_parameters,
-)
-
-JuliaMPBSolver.Equations.add_boundary_charge!(pbsystem, 1, 2, -nel)
-JuliaMPBSolver.Equations.add_boundary_charge!(pbsystem, 1, 1, nel)
-
-sol = JuliaMPBSolver.Equations.solve_equation_system(pbsystem)
+solution, X, nv, ε_r =
+  JuliaMPBSolver.Equations.create_and_run_full_cell_problem(
+    grid_parameters,
+    user_parameters,
+    computed_parameters,
+  )
 
 function bee!(y, ϕ)
   N = length(user_parameters.charge_numbers)
@@ -79,15 +73,6 @@ function bee(sol)
   end
   return e
 end
-
-nv = nodevolumes(pbsystem)
-
-ε_r =
-  user_parameters.dielectric_susceptibility ./ (
-    a *
-    ((sol[1, 2:end] - sol[1, 1:(end-1)]) ./ (X[2:end] - X[1:(end-1)])) .^ 2 .+
-    1
-  ) .+ 1
 
 function plotsol(sol; size = (600, 400))
   PythonPlot.clf()
@@ -180,4 +165,4 @@ function plotsol(sol; size = (600, 400))
   return PythonPlot.gcf()
 end
 
-plotsol(sol)
+plotsol(solution)

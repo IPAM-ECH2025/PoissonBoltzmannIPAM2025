@@ -119,6 +119,46 @@ function compute_gradient(y::AbstractVector, x::AbstractVector)
   return (y[2:end] - y[1:(end-1)]) ./ (x[2:end] - x[1:(end-1)])
 end
 
+function compute_electric_susceptibility(
+  electric_field,
+  ones,
+  user_parameters::UserParameters,
+)
+  return user_parameters.dielectric_susceptibility ./
+         sqrt.(
+    ones .+
+    user_parameters.electric_susceptibility_decrement_parameter .*
+    electric_field .^ 2,
+  )
+end
+
+function compute_relative_permittivity(
+  electric_field,
+  ones,
+  user_parameters::UserParameters,
+)
+  return ones +
+         compute_electric_susceptibility(electric_field, ones, user_parameters)
+end
+
+function compute_relative_permittivity(electric_susceptibility, ones)
+  return ones + electric_susceptibility
+end
+
+function compute_permittivity(
+  electric_field,
+  ones,
+  user_parameters::UserParameters,
+)
+  return compute_relative_permittivity(electric_field, ones, user_parameters) *
+         Units.vacuum_permittivity
+end
+
+function compute_permittivity(electric_susceptibility, ones)
+  return compute_relative_permittivity(electric_susceptibility, ones) *
+         Units.vacuum_permittivity
+end
+
 export compute_mole_fractions!,
   compute_concentrations!, compute_concentrations, compute_spacecharge
 

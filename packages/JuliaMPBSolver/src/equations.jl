@@ -142,21 +142,15 @@ function create_and_run_full_cell_problem(
 
   nodal_volumes = nodevolumes(system)
 
-  print(string(length(solution[1, :]), "\n"))
-
   electric_field = Postprocess.compute_gradient(solution[1, :], X)
 
   one_array = ones(length(electric_field))
-
-  print(string(length(one_array), "\n"))
 
   relative_permittivity = Postprocess.compute_relative_permittivity(
     electric_field,
     one_array,
     user_parameters,
   )
-
-  print(string(length(relative_permittivity), "\n"))
 
   return solution, X, nodal_volumes, relative_permittivity
 end

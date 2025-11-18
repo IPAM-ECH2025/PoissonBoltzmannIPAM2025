@@ -124,8 +124,7 @@ function compute_electric_susceptibility(
   ones,
   user_parameters::UserParameters,
 )
-  return user_parameters.dielectric_susceptibility ./
-         sqrt.(
+  return user_parameters.dielectric_susceptibility ./ sqrt.(
     ones .+
     user_parameters.electric_susceptibility_decrement_parameter .*
     electric_field .^ 2,

@@ -171,6 +171,13 @@ function MPBSystem(grid, data)
   )
 end
 
+M1_ref = 1.0
+n1_e = 10.0
+M2_avg = 5.0
+n2_e = 10.0
+M3_avg = 5.0
+n3_e = 10.0
+
 data1 = PBData(c_ref = fill(M1_ref * mol / dm^3, 2), q = surfcharge(n1_e));
 
 sys1 = MPBSystem(grid, data1);
@@ -225,6 +232,16 @@ let
 end
 
 c2_avg = [M2_avg * mol / dm^3]
+
+res = nlsolve(
+    c_ref -> cavg(
+        c_ref;
+        verbose = "",
+        damp_initial = 0.1
+    )[1] - c2_avg,
+    c2_avg * 0.1,
+    ftol = 1.0e-14
+)
 
 c2_ref = extcref(res.zero, VoronoiFVM.data(sys1))
 

@@ -15,4 +15,7 @@ using .Postprocess
 include("equations.jl")
 using .Equations
 
+include("data_out.jl")
+using .DataOut
+
 end

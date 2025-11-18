@@ -81,30 +81,53 @@ function create_equation_system(
         permittivity =
             Postprocess.compute_permittivity(electric_field, ones, user_parameters)
 
-        y[1] = permittivity * (u[1, 1] - u[1, 2])
+    y[1] = permittivity * (u[1, 1] - u[1, 2])
+
+    if user_parameters.use_bazant_storey_kornyshev
+      y[1] -=
+        permittivity *
+        user_parameters.bazant_storey_kornyshev_parameter^2 *
+        (u[2, 1] - u[2, 2])
+    end
+
+    if user_parameters.use_pressure_poisson
+      y[2] = u[1, 1] - u[1, 2]
+    end
 
         return nothing
     end
 
-    function reaction!(y, u, node, data)
-        local_tmp = get_tmp(tmp, u)
-        y[1] =
-            -Postprocess.compute_spacecharge(
-            local_tmp,
-            u[1],
-            user_parameters,
-            computed_parameters,
-        )
-        return nothing
+  function reaction!(y, u, node, data)
+    local_tmp = get_tmp(tmp, u)
+
+    y[1] =
+      -Postprocess.compute_spacecharge(
+        local_tmp,
+        u[1],
+        user_parameters,
+        computed_parameters,
+      )
+
+    if user_parameters.use_pressure_poisson
+      y[2] = -u[2]
     end
 
-    system = VoronoiFVM.System(
-        grid;
-        reaction = reaction!,
-        flux = flux!,
-        species = [1],
-        valuetype = float_type,
-    )
+    return nothing
+  end
+
+  species = [1]
+
+  if user_parameters.use_pressure_poisson
+    push!(species, 2)
+  end
+
+  system = VoronoiFVM.System(
+    grid;
+    reaction = reaction!,
+    flux = flux!,
+    species = species,
+    valuetype = float_type,
+  )
 
     return system
 end
@@ -133,8 +156,12 @@ function create_and_run_full_cell_problem(
     grid = create_full_cell(grid_paramters)
     system = create_equation_system(grid, user_parameters, computed_parameters)
 
-    add_boundary_charge!(system, 1, 2, -user_parameters.boundary_electron_density)
-    add_boundary_charge!(system, 1, 1, user_parameters.boundary_electron_density)
+  add_boundary_charge!(system, 1, 2, -user_parameters.boundary_electron_density)
+  add_boundary_charge!(system, 1, 1, user_parameters.boundary_electron_density)
+
+  if user_parameters.use_pressure_poisson
+    pin_pressure_value!(system, 2, 3)
+  end
 
     solution = solve_equation_system(system)
 

@@ -18,16 +18,19 @@ const c_bulk = [M_bulk / abs(z[1]), M_bulk / abs(z[2])] * JuliaMPBSolver.Units.M
 
 # Parameters
 user_parameters = JuliaMPBSolver.Parameters.UserParameters(
-    273.15 + 25 * JuliaMPBSolver.Units.K,
-    78.49 - 1,
-    0.0,
-    0.0,
-    z,
-    c̄,
-    c_bulk,
-    nel,
-    a,
-    true,
+  273.15 + 25 * JuliaMPBSolver.Units.K,
+  78.49 - 1,
+  0.0,
+  0.0,
+  z,
+  c̄,
+  c_bulk,
+  nel,
+  a,
+  true,
+  false,
+  false,
+  0.0,
 )
 
 computed_parameters =

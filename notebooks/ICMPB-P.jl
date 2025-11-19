@@ -80,12 +80,6 @@ let
 end
   ╠═╡ =#
 
-# ╔═╡ 5fed71ec-35fb-4804-99ff-e1eaf18fac1b
-begin
-  const iφ = 1
-  const ip = 2
-end;
-
 # ╔═╡ b1e333c0-cdaa-4242-b71d-b54ff71aef83
 let
   data = EquilibriumData()
@@ -100,6 +94,7 @@ let
     sumyv += data.y_E[α] * v
     sumy += data.y_E[α]
   end
+  @test sumyz ≈ 0.0
   @test sumy ≈ 1.0
 end
 
@@ -121,11 +116,10 @@ dlcap_exact = 0.22846691848825248
 begin
   equidata = EquilibriumData()
   set_molarity!(equidata, 0.01)
-  equidata.χ = 78.49 - 1
 end
 
 # ╔═╡ ddb3e60b-8571-465f-acf3-2403fb884363
-@test dlcap0(equidata) |> unitfactor ≈ dlcap_exact
+@test dlcap0(equidata) ≈ dlcap_exact
 
 # ╔═╡ a629e8a1-b1d7-42d8-8c17-43475785218e
 begin
@@ -161,6 +155,8 @@ molarities = [0.001, 0.01, 0.1, 1]
 
 # ╔═╡ b1a69fe9-a3bd-4e52-95c3-efaa2d5f44c3
 function qsweep(sys; qmax=10, nsteps=100)
+	data=sys.physics.data
+	(;ip, iφ)= data
 	apply_charge!(sys, 0 * ph"e" / ufac"nm^2")
 	sol=solve(sys, damp_initial=0.1)
 
@@ -266,7 +262,6 @@ end
 # ╠═a3f23fe8-3b83-440a-8f4f-c4fedef5615b
 # ╟─5a210961-19fc-40be-a5f6-033a80f1414d
 # ╠═fe704fb4-d07c-4591-b834-d6cf2f4f7075
-# ╠═5fed71ec-35fb-4804-99ff-e1eaf18fac1b
 # ╠═b1e333c0-cdaa-4242-b71d-b54ff71aef83
 # ╟─97c5942c-8eb4-4b5c-8951-87ac0c9f396d
 # ╠═00464966-2b1e-455c-a3a1-2af61c6649b7

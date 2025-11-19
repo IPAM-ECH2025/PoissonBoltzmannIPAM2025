@@ -5,13 +5,13 @@ using Markdown
 using InteractiveUtils
 
 # ╔═╡ 60941eaa-1aea-11eb-1277-97b991548781
-if isdefined(Main,:PlutoRunner)
-  using Pkg
-  Pkg.activate(joinpath(@__DIR__, ".."))
-  using VoronoiFVM
-  using ExtendableGrids
-  using LinearAlgebra
-  using LessUnitful
+if isdefined(Main, :PlutoRunner)
+    using Pkg
+    Pkg.activate(joinpath(@__DIR__, ".."))
+    using VoronoiFVM
+    using ExtendableGrids
+    using LinearAlgebra
+    using LessUnitful
 end
 
 # ╔═╡ ef660f6f-9de3-4896-a65e-13c60df5de1e
@@ -29,8 +29,7 @@ This code implements the model described in
 
 Equation numbers refer to the paper.
 
-
-Concentrations are given in number densities, and calculations are done in mole fractions.
+Concentrations are given in number densities.
 """
 
 # ╔═╡ 87ac16f4-a4fc-4205-8fb9-e5459517e1b8
@@ -48,9 +47,6 @@ md"""
 #### EquilibriumData
 """
 
-# ╔═╡ e073bc4e-b152-4612-b350-8c22c38b8e80
-const iϕ=1
-
 # ╔═╡ 30c6a176-935b-423f-9447-86f78746322f
 md"""
 #### debyelength(data)
@@ -62,19 +58,10 @@ L_{Debye}=\sqrt{ \frac{(1+χ)ε_0k_BT}{e^2n_E}}
 
 # ╔═╡ a41c6c1f-ceb5-4590-a421-cae5078d167b
 function L_Debye(data)
-  return sqrt(
-    (1 + data.χ) * data.ε_0 * ph"k_B" * data.T / (data.e^2 * data.n_E[1]),
-  )
+    return sqrt(
+        (1 + data.χ) * data.ε_0 * ph"k_B" * data.T / (data.e^2 * data.n_E[1]),
+    )
 end;
-
-# ╔═╡ f4facb34-1f4a-432d-8a1e-30299e542bcd
-begin
-	const mol = ph"N_A"
-	const nm  = ufac"nm"
-	const V = ufac"V"
-	const cm=ufac"cm"
-	const μF=ufac"μF"
-end
 
 # ╔═╡ f3049938-2637-401d-9411-4d7be07c19ca
 md"""
@@ -95,19 +82,6 @@ C_{dl,0}=\sqrt{\frac{2(1+χ) ε_0e^2 n_E}{k_BT}}
 md"""
 Check with Bard/Faulkner: the value must be $(22.8)μF/cm^2")
 """
-
-# ╔═╡ 9b57f6ed-02f8-48ba-afa2-0766fe8c0c4c
-md"""
-#### Species indices
-"""
-
-# ╔═╡ 5fed71ec-35fb-4804-99ff-e1eaf18fac1b
-begin
-  const iφ = 1
-  const ip = 2
-  const iA = 1
-  const iC = 2
-end;
 
 # ╔═╡ 5eca37ba-f858-45fb-a66a-3795327dfd18
 md"""
@@ -132,9 +106,9 @@ Ion molar fractions
 
 # ╔═╡ 188f67d8-2ae8-474c-8e58-68b8b4fde02e
 function y_α(φ, p, α, data)
-  η_φ = data.z[α] * data.e * (φ - data.E_ref)
-  η_p = data.v[α] * (p * data.pscale - data.p_ref)
-  return data.y_E[α] * exp(-(η_φ + η_p) / (data.kT))
+    η_φ = data.z[α] * data.e * (φ - data.E_ref)
+    η_p = data.v[α] * (p * data.pscale - data.p_ref)
+    return data.y_E[α] * exp(-(η_φ + η_p) / (data.kT))
 end;
 
 # ╔═╡ f70eed13-a6c2-4d54-9f30-113367afaf7d
@@ -146,7 +120,7 @@ Solvent molar fraction
 
 # ╔═╡ d7531d5f-fc2d-42b2-9cf9-6a737b0f0f8d
 function y0(p, data)
-  return data.y0_E * exp(-data.v0 * (p * data.pscale - data.p_ref) / (data.kT))
+    return data.y0_E * exp(-data.v0 * (p * data.pscale - data.p_ref) / (data.kT))
 end;
 
 # ╔═╡ f6f004a6-d71b-4813-a363-9f51dc37e42a
@@ -168,7 +142,7 @@ VoronoiFVM flux function for left hand side of Poisson equation
 
 # ╔═╡ 0e2d20a1-5f26-4263-9a91-3b40b2c2996a
 function poisson_flux!(f, u, edge, data)
-  return f[iφ] = (1.0 + data.χ) * data.ε_0 * (u[iφ, 1] - u[iφ, 2])
+    return f[iφ] = (1.0 + data.χ) * data.ε_0 * (u[iφ, 1] - u[iφ, 2])
 end;
 
 # ╔═╡ 824c610b-6e5e-48a3-be37-19104f52d1d9
@@ -208,15 +182,15 @@ q(φ,p)&=e∑\limits_α z_αn_α = ne∑\limits_α z_αy_α\\
 
 # ╔═╡ b07246b8-aec5-4161-8879-8cefb350aced
 function spacecharge(φ, p, data)
-  y = y0(p, data)
-  sumyz = zero(eltype(p))
-  sumyv = data.v0 * y
-  for α in 1:(data.N)
-    y = y_α(φ, p, α, data)
-    sumyz += data.z[α] * y
-    sumyv += data.v[α] * y
-  end
-  return data.e * sumyz / sumyv
+    y = y0(p, data)
+    sumyz = zero(eltype(p))
+    sumyv = data.v0 * y
+    for α in 1:(data.N)
+        y = y_α(φ, p, α, data)
+        sumyz += data.z[α] * y
+        sumyv += data.v[α] * y
+    end
+    return data.e * sumyz / sumyv
 end
 
 # ╔═╡ b41838bb-3d5b-499c-9eb5-137c252ae366
@@ -226,11 +200,11 @@ md"""
 
 # ╔═╡ a468f43a-aa20-45dc-9c21-77f5adf2d700
 function ysum(φ, p, data)
-  sumy = y0(p, data)
-  for α in 1:(data.N)
-    sumy += y_α(φ, p, α, data)
-  end
-  return sumy
+    sumy = y0(p, data)
+    for α in 1:(data.N)
+        sumy += y_α(φ, p, α, data)
+    end
+    return sumy
 end
 
 # ╔═╡ 978bf1d3-4758-4d01-b1e5-8aed1db9024f
@@ -276,66 +250,113 @@ y_α^E&=\frac{n_α^E}{n^E}
 
 # ╔═╡ 32db42f3-5084-4908-9b53-59291b6133c5
 function derived(κ, v0, vu, n_E, T)
-  c0 = 1 / v0
-  barc = 0.0
-  v = vu + κ * v0
-  N = length(κ)
-  for α in 1:N
-    barc += n_E[α]
-    c0 -= n_E[α] * (1 + κ[α])
-  end
-  barc += c0
-  y_E = n_E / barc
-  y0_E = c0 / barc
-  return (; v, y_E, y0_E)
+    c0 = 1 / v0
+    barc = 0.0
+    v = vu + κ * v0
+    N = length(κ)
+    for α in 1:N
+        barc += n_E[α]
+        c0 -= n_E[α] * (1 + κ[α])
+    end
+    barc += c0
+    y_E = n_E / barc
+    y0_E = c0 / barc
+    return (; v, y_E, y0_E)
 end;
 
 # ╔═╡ 0d825f88-cd67-4368-90b3-29f316b72e6e
 begin
-  """
-      EquilibriumData
+    """
+        EquilibriumData
 
-  Data structure containg data for equilibrum calculations
-  All data including molarity in SI basic units
-  """
-  Base.@kwdef mutable struct EquilibriumData
-    N::Int64 = 2                     # number of ionic species
-    T::Float64 = 298.15 * ufac"K"        # temperature
-    kT::Float64 = ph"k_B" * T             # temperature
-    p_ref::Float64 = 1.0e5 * ufac"Pa"        # referece pressure
-    pscale::Float64 = 1.0 * ufac"GPa"         # pressure scaling nparameter
-    E_ref::Float64 = 0.0 * ufac"V"           # reference voltage
-    n0_ref::Float64 = 55.508 * ph"N_A" / ufac"dm^3"  # solvent molarity
-    v0::Float64 = 1 / n0_ref              # solvent molecule volume
-    vu::Vector{Float64} = [1 / n0_ref, 1 / n0_ref]           # unsolvated ion volume
-    χ::Float64 = 15                    # dielectric susceptibility
-    z::Vector{Int} = [-1, 1]                # ion charge numbers
-    κ::Vector{Int} = [10,10]               # ion solvation numbers
-    molarity::Float64 = 0.1* ph"N_A" / ufac"dm^3" 
-    n_E::Vector{Float64} = [molarity, molarity]  # bulk ion number densities
-  
-    e::Float64 = ph"e"
-    ε_0::Float64 = ph"ε_0"
-	q::Vector{Float64}=[0,0]  
+    Data structure containg data for equilibrum calculations
+    All data including molarity in SI basic units
+    """
+    Base.@kwdef mutable struct EquilibriumData
 
-    v::Vector{Float64} = derived(κ, v0, vu, n_E, T).v   # effective ion volumes
-    y_E::Vector{Float64} = derived(κ, v0, vu, n_E, T).y_E # bulk ion mole fractions
-    y0_E::Float64 = derived(κ, v0, vu, n_E, T).y0_E       # bulk solvent mole fraction
-  end
+        "Ion charge numbers."
+        z::Vector{Int} = [-1, 1]
+
+        "Number of ionic species"
+        N::Int64 = length(z)
+
+        "Ion solvation numbers"
+        κ::Vector{Float64} = fill(10.0, N)
+
+        "Bulk molarity"
+        molarity::Float64 = 0.1 * ph"N_A" / ufac"dm^3"
+
+        "Bulk ion number densities"
+        n_E::Vector{Float64} = fill(molarity, N)
+
+        "Surface charges"
+        q::Vector{Float64} = [0, 0]
+
+
+        "Solvent molarity"
+        n0_ref::Float64 = 55.508 * ph"N_A" / ufac"dm^3"
+
+        "Solvent molecule volume"
+        v0::Float64 = 1 / n0_ref
+
+        "Unsolvated ion volume"
+        vu::Vector{Float64} = fill(1 / n0_ref, N)
+
+        "Dielectric susceptibility"
+        χ::Float64 = 78.49 - 1
+
+        "Electric potential species index"
+        iφ::Int = 1
+
+        "Pressure species index"
+        ip::Int = 2
+
+
+        "Reference pressure"
+        p_ref::Float64 = 1.0e5 * ufac"Pa"
+
+        "Pressure scaling nparameter"
+        pscale::Float64 = 1.0 * ufac"GPa"
+
+        "Reference voltage"
+        E_ref::Float64 = 0.0 * ufac"V"
+
+        "Temperature"
+        T::Float64 = 298.15 * ufac"K"
+
+        "Temperature times Boltzmann constant"
+        kT::Float64 = ph"k_B" * T
+
+        "Electron charge"
+        e::Float64 = ph"e"
+
+        "Vacuum permittivity"
+        ε_0::Float64 = ph"ε_0"
+
+
+        "Effective ion volumes"
+        v::Vector{Float64} = derived(κ, v0, vu, n_E, T).v
+
+        "Bulk ion mole fractions"
+        y_E::Vector{Float64} = derived(κ, v0, vu, n_E, T).y_E
+
+        "Bulk solvent mole fraction"
+        y0_E::Float64 = derived(κ, v0, vu, n_E, T).y0_E
+    end
 end
 
 # ╔═╡ 5d6340c4-2ddd-429b-a60b-3de5570a7398
 function set_molarity!(data::EquilibriumData, M_E)
-  n_E = M_E * ph"N_A" / ufac"dm^3"
-  data.molarity = n_E
-  return data.n_E = fill(n_E, data.N)
+    n_E = M_E * ph"N_A" / ufac"dm^3"
+    data.molarity = n_E
+    return data.n_E = fill(n_E, data.N)
 end
 
 # ╔═╡ 1d22b09e-99c1-4026-9505-07bdffc98582
 function dlcap0(data::EquilibriumData)
-  return sqrt(
-    2 * (1 + data.χ) * ph"ε_0" * ph"e"^2 * data.n_E[1] / (ph"k_B" * data.T),
-  )
+    return sqrt(
+        2 * (1 + data.χ) * ph"ε_0" * ph"e"^2 * data.n_E[1] / (ph"k_B" * data.T),
+    )
 end;
 
 # ╔═╡ fe704fb4-d07c-4591-b834-d6cf2f4f7075
@@ -352,27 +373,27 @@ end
 
 # ╔═╡ 3d9a47b8-2754-4a21-84a4-39cbeab12286
 begin
-  function update_derived!(data::EquilibriumData)
-    (; κ, v0, vu, n_E, T) = data
-    return data.v, data.y_E, data.y0_E = derived(κ, v0, vu, n_E, T)
-  end
+    function update_derived!(data::EquilibriumData)
+        (; κ, v0, vu, n_E, T) = data
+        return data.v, data.y_E, data.y0_E = derived(κ, v0, vu, n_E, T)
+    end
 end
 
 # ╔═╡ b1e333c0-cdaa-4242-b71d-b54ff71aef83
 let
-  data = EquilibriumData()
-  set_molarity!(data, 0.01)
-  update_derived!(data)
-  sumyz = 0.0
-  sumyv = data.y0_E * data.v0
-  sumy = data.y0_E
-  for α in 1:data.N
-    v = (1.0 + data.κ[α]) * data.v0
-    sumyz += data.y_E[α] * data.z[α]
-    sumyv += data.y_E[α] * v
-    sumy += data.y_E[α]
-  end
-  @assert sumy ≈ 1.0
+    data = EquilibriumData()
+    set_molarity!(data, 0.01)
+    update_derived!(data)
+    sumyz = 0.0
+    sumyv = data.y0_E * data.v0
+    sumy = data.y0_E
+    for α in 1:data.N
+        v = (1.0 + data.κ[α]) * data.v0
+        sumyz += data.y_E[α] * data.z[α]
+        sumyv += data.y_E[α] * v
+        sumy += data.y_E[α]
+    end
+    @assert sumy ≈ 1.0
 end
 
 # ╔═╡ 55bd7b9a-a191-4a0b-9c6b-13733be5023e
@@ -386,24 +407,24 @@ Calculate number concentration at discretization node
 
 # ╔═╡ 3ceda3b1-bf1c-4126-b94f-2ee03e8dde99
 function c_num!(c, φ, p, data)
-  y = y0(p, data)
-  sumyv = data.v0 * y
-  for α in 1:(data.N)
-    c[α] = y_α(φ, p, α, data)
-    sumyv += c[α] * data.v[α]
-  end
-  return c ./= sumyv
+    y = y0(p, data)
+    sumyv = data.v0 * y
+    for α in 1:(data.N)
+        c[α] = y_α(φ, p, α, data)
+        sumyv += c[α] * data.v[α]
+    end
+    return c ./= sumyv
 end;
 
 # ╔═╡ 97c5942c-8eb4-4b5c-8951-87ac0c9f396d
 function c0_num!(c, φ, p, data)
-  y = y0(p, data)
-  sumyv = data.v0 * y
-  for α in 1:(data.N)
-    c[α] = y_α(φ, p, α, data)
-    sumyv += c[α] * data.v[α]
-  end
-  return y / sumyv
+    y = y0(p, data)
+    sumyv = data.v0 * y
+    for α in 1:(data.N)
+        c[α] = y_α(φ, p, α, data)
+        sumyv += c[α] * data.v[α]
+    end
+    return y / sumyv
 end;
 
 # ╔═╡ 0c54efd0-f279-4dc6-8b00-ba092dd13f44
@@ -415,27 +436,29 @@ Obtain ion number densities from system
 
 # ╔═╡ 800dfed8-9f29-4138-96f8-e8bf1f2f00e6
 function calc_cnum(sol, sys)
-  data = sys.physics.data
-  grid = sys.grid
-  nnodes = num_nodes(grid)
-  conc = zeros(data.N, nnodes)
-  for i in 1:nnodes
-    @views c_num!(conc[:, i], sol[iφ, i], sol[ip, i], data)
-  end
-  return conc
+    data = sys.physics.data
+    (; iφ, ip) = data
+    grid = sys.grid
+    nnodes = num_nodes(grid)
+    conc = zeros(data.N, nnodes)
+    for i in 1:nnodes
+        @views c_num!(conc[:, i], sol[iφ, i], sol[ip, i], data)
+    end
+    return conc
 end;
 
 # ╔═╡ 24910762-7d56-446b-a758-d8e830fe9a09
 function calc_c0num(sol, sys)
-  data = sys.physics.data
-  grid = sys.grid
-  nnodes = num_nodes(grid)
-  c0 = zeros(nnodes)
-  conc = zeros(data.N)
-  for i in 1:nnodes
-    @views c0[i] = c0_num!(conc, sol[iφ, i], sol[ip, i], data)
-  end
-  return c0
+    data = sys.physics.data
+    (; iφ, ip) = data
+    grid = sys.grid
+    nnodes = num_nodes(grid)
+    c0 = zeros(nnodes)
+    conc = zeros(data.N)
+    for i in 1:nnodes
+        @views c0[i] = c0_num!(conc, sol[iφ, i], sol[ip, i], data)
+    end
+    return c0
 end;
 
 # ╔═╡ 9fe3ca93-c051-426e-8b9a-cc59f59319ad
@@ -483,71 +506,79 @@ The bulk Dirichlet boundary condition for the pressure is necessary to make the 
 
 # ╔═╡ e1c13f1e-5b67-464b-967b-25e3a93e33d9
 function spacecharge!(f, u, node, data)
-  φ = u[iφ]
-  p = u[ip]
-  return f[iφ] = -spacecharge(u[iφ], u[ip], data)
+    (; iφ, ip) = data
+    φ = u[iφ]
+    p = u[ip]
+    return f[iφ] = -spacecharge(u[iφ], u[ip], data)
 end;
 
 # ╔═╡ 64e47917-9c61-4d64-a6a1-c6e8c7b28c59
 function poisson_and_p_flux!(f, u, edge, data)
-  f[iφ] = (1.0 + data.χ) * data.ε_0 * (u[iφ, 1] - u[iφ, 2])
-  q1 = spacecharge(u[iφ, 1], u[ip, 1], data)
-  q2 = spacecharge(u[iφ, 2], u[ip, 2], data)
-  return f[ip] =
-    (u[ip, 1] - u[ip, 2])# +
+    (; iφ, ip) = data
+
+    f[iφ] = (1.0 + data.χ) * data.ε_0 * (u[iφ, 1] - u[iφ, 2])
+    q1 = spacecharge(u[iφ, 1], u[ip, 1], data)
+    q2 = spacecharge(u[iφ, 2], u[ip, 2], data)
+    return f[ip] =
+        (u[ip, 1] - u[ip, 2]) # +
     (u[iφ, 1] - u[iφ, 2]) * (q1 + q2) / (2 * data.pscale)
 end;
 
 # ╔═╡ 743b9a7a-d6ac-4da0-8538-2045d965b547
 function bcondition!(y, u, bnode, data)
-  boundary_neumann!(y, u, bnode, species = iϕ, region = 2, value = data.q[2])
-  boundary_neumann!(y, u, bnode, species = iϕ, region = 1, value = data.q[1])
-  boundary_dirichlet!(y,u, bnode, species = ip, region= 3, value=0)	
-  return nothing
+    (; iφ, ip) = data
+    boundary_neumann!(y, u, bnode, species = iφ, region = 2, value = data.q[2])
+    boundary_neumann!(y, u, bnode, species = iφ, region = 1, value = data.q[1])
+    boundary_dirichlet!(y, u, bnode, species = ip, region = 3, value = 0)
+    return nothing
 end
 
 # ╔═╡ 0b646215-32db-4219-904b-f86f8861b46a
 function apply_charge!(sys, q)
-	data=sys.physics.data
-	data.q .= [q,- q]
+    data = sys.physics.data
+    return data.q .= [q, - q]
 end
 
 # ╔═╡ 7bf3a130-3b47-428e-916f-4a0ec1237844
 function create_equilibrium_pp_system(
-  grid,
-  data::EquilibriumData = EquilibriumData();
-)
-  update_derived!(data)
+        grid,
+        data::EquilibriumData = EquilibriumData()
+    )
+    update_derived!(data)
 
-  sys = VoronoiFVM.System(
-    grid;
-    data = data,
-    flux = poisson_and_p_flux!,
-    reaction = spacecharge!,
-	bcondition=bcondition!,
-    species = [iφ, ip],
-  )
-  apply_charge!(sys, 0)
-	return sys
+    sys = VoronoiFVM.System(
+        grid;
+        data = data,
+        flux = poisson_and_p_flux!,
+        reaction = spacecharge!,
+        bcondition = bcondition!,
+        species = [data.iφ, data.ip],
+    )
+    apply_charge!(sys, 0)
+    return sys
 end;
 
 # ╔═╡ 48670f54-d303-4c3a-a191-06e6592a2e0a
 function ysum(sys, sol)
-  data = sys.physics.data
-  n = size(sol, 2)
-  sumy = zeros(n)
-  for i in 1:n
-    sumy[i] = ysum(sol[iφ, i], sol[ip, i], data)
-  end
-  return sumy
+    data = sys.physics.data
+    (; iφ, ip) = data
+
+    n = size(sol, 2)
+    sumy = zeros(n)
+    for i in 1:n
+        sumy[i] = ysum(sol[iφ, i], sol[ip, i], data)
+    end
+    return sumy
 end
 
 # ╔═╡ 042a452a-1130-4a56-a1b9-b2674803e445
 function spacecharge_and_ysum!(f, u, node, data)
-  φ = u[iφ]
-  p = u[ip]
-  f[iφ] = -spacecharge(φ, p, data)
-  return f[ip] = log(ysum(φ, p, data)) # this behaves much better with Newton's method
+    (; iφ, ip) = data
+
+    φ = u[iφ]
+    p = u[ip]
+    f[iφ] = -spacecharge(φ, p, data)
+    return f[ip] = log(ysum(φ, p, data)) # this behaves much better with Newton's method
 end;
 
 # ╔═╡ Cell order:
@@ -558,18 +589,14 @@ end;
 # ╟─7d77ad32-3df6-4243-8bad-b8df4126e6ea
 # ╟─4cabef42-d9f9-43fe-988e-7b54462dc775
 # ╠═0d825f88-cd67-4368-90b3-29f316b72e6e
-# ╠═e073bc4e-b152-4612-b350-8c22c38b8e80
 # ╟─30c6a176-935b-423f-9447-86f78746322f
 # ╠═a41c6c1f-ceb5-4590-a421-cae5078d167b
-# ╠═f4facb34-1f4a-432d-8a1e-30299e542bcd
 # ╟─f3049938-2637-401d-9411-4d7be07c19ca
 # ╠═5d6340c4-2ddd-429b-a60b-3de5570a7398
 # ╟─a21545da-3b53-47af-b0c4-f253b37dc84f
 # ╠═1d22b09e-99c1-4026-9505-07bdffc98582
 # ╟─5a210961-19fc-40be-a5f6-033a80f1414d
 # ╠═fe704fb4-d07c-4591-b834-d6cf2f4f7075
-# ╟─9b57f6ed-02f8-48ba-afa2-0766fe8c0c4c
-# ╠═5fed71ec-35fb-4804-99ff-e1eaf18fac1b
 # ╟─5eca37ba-f858-45fb-a66a-3795327dfd18
 # ╟─a26cf11b-0ce1-4c1d-a64d-1917178ff676
 # ╟─cdd1d359-08fa-45a1-a857-e19f2adefcab

@@ -6,10 +6,10 @@ using InteractiveUtils
 
 # ╔═╡ 60941eaa-1aea-11eb-1277-97b991548781
 begin
-  using Pkg
-  Pkg.activate(joinpath(@__DIR__, ".."))
-  using PlutoUI
-  using JuliaMPBSolver
+    using Pkg
+    Pkg.activate(joinpath(@__DIR__, ".."))
+    using PlutoUI
+    using JuliaMPBSolver
 end
 
 # ╔═╡ 5b7da564-8c8e-45c9-8c72-534c5a13301d

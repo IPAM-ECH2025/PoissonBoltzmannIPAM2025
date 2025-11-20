@@ -269,7 +269,7 @@ begin
     """
         ICMPBData
 
-    Data structure contaning data for equilibrium calculations
+    Data structure containing data for equilibrium calculations
     All data including molarity in SI basic units
     """
     Base.@kwdef mutable struct ICMPBData

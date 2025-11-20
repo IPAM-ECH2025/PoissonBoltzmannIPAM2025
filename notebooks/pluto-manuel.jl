@@ -113,7 +113,7 @@ begin
         # denominator: vR0*ey0 + sum (κ_α vR0 + vRα) eyα
         denom = vR0 * y0 + (κA * vR0 + vRA) * yA + (κC * vR0 + vRC) * yC
         # convert to charge density (C per m^3)
-        return numer / denom
+        return number / denom
     end
 
     # algebraic expressions for y from eq. (27)

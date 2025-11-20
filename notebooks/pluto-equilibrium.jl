@@ -299,7 +299,7 @@ begin
     """
         EquilibriumData
 
-    Data structure contaning data for equilibrium calculations
+    Data structure containing data for equilibrium calculations
     """
     Base.@kwdef mutable struct EquilibriumData
         N::Int64 = 2                     # number of ionic species

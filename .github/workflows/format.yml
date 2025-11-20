@@ -29,4 +29,3 @@ jobs:
         with:
           version: '2.1.6'
           suggestion-label: 'format-suggest'
-

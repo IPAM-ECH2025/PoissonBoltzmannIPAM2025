@@ -143,6 +143,9 @@ begin
     ysum(sys_pp, sol0)
 end
 
+# ╔═╡ efb12e12-825b-4dfd-aa10-c6afb304b6bf
+ph"e"/ufac"nm^2"
+
 # ╔═╡ 6f037b32-e2a8-4693-b46c-952d6b140e8e
 begin
     apply_charge!(sys_pp, 2 * ph"e" / ufac"nm^2")
@@ -274,6 +277,7 @@ end
 # ╠═a629e8a1-b1d7-42d8-8c17-43475785218e
 # ╠═31a1f686-f0b6-430a-83af-187df411b293
 # ╠═14ac1c80-cae5-42f1-b0d3-33aa5bba4de6
+# ╠═efb12e12-825b-4dfd-aa10-c6afb304b6bf
 # ╠═6f037b32-e2a8-4693-b46c-952d6b140e8e
 # ╠═1c0145d5-76b1-48c1-8852-de1a2668285a
 # ╠═b1a69fe9-a3bd-4e52-95c3-efaa2d5f44c3

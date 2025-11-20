@@ -4,6 +4,11 @@
 using Markdown
 using InteractiveUtils
 
+# ╔═╡ ef660f6f-9de3-4896-a65e-13c60df5de1e
+md"""
+## Ion conserving MPB solver
+"""
+
 # ╔═╡ 60941eaa-1aea-11eb-1277-97b991548781
 if isdefined(Main, :PlutoRunner)
     using Pkg
@@ -13,11 +18,6 @@ if isdefined(Main, :PlutoRunner)
     using LinearAlgebra
     using LessUnitful
 end
-
-# ╔═╡ ef660f6f-9de3-4896-a65e-13c60df5de1e
-md"""
-## Ion conserving MPB solver
-"""
 
 # ╔═╡ 920b7d84-56c6-4958-aed9-fc67ba0c43f6
 md"""
@@ -311,8 +311,8 @@ begin
         "Pressure species index"
         ip::Int = 2
 
-	    "Offset of n_E in species list"
-	    coffset::Int = ip
+        "Offset of n_E in species list"
+        coffset::Int = ip
 
         "Reference pressure"
         p_ref::Float64 = 1.0e5 * ufac"Pa"
@@ -537,25 +537,25 @@ end
 
 # ╔═╡ dbccaa88-65d9-47ab-be78-83df64a6db24
 function ionconservation!(f, u, sys, data)
-  (; coffset, iφ, ip, N) = data
-   i3=sys.grid[BFaceNodes][3][1]
-	idx = unknown_indices(unknowns(sys));
-#  y = get_tmp(cache, u)
-#  L = sum(nv)
-  for ic in 1:(N-1)
-#    f[idx[ic+iϕ, i3]] = 0
-  end
-#  for iv in 1:length(nv)
-#	cnum!(y,u[idx[iϕ, iv]], u[idx[ip, iv]], data) 
-    for ic in 1:(N-1)
-   #   f[idx[ic+iϕ, i3]] += y[ic] * c̄ * nv[iv]
-#    end
-  end
-  for ic in 1:N
-   # f[idx[ic+iϕ, i3]] = f[idx[ic+iϕ, i3]] - c_avg[ic] * L
-#	 f[idx[coffset+ic,i3]] = u[idx[coffset+ic, i3]] - data.n_E[ic]
-  end
-  return nothing
+    (; coffset, iφ, ip, N) = data
+    i3 = sys.grid[BFaceNodes][3][1]
+    idx = unknown_indices(unknowns(sys))
+    #  y = get_tmp(cache, u)
+    #  L = sum(nv)
+    for ic in 1:(N - 1)
+        #    f[idx[ic+iϕ, i3]] = 0
+    end
+    #  for iv in 1:length(nv)
+    #	cnum!(y,u[idx[iϕ, iv]], u[idx[ip, iv]], data)
+    for ic in 1:(N - 1)
+        #   f[idx[ic+iϕ, i3]] += y[ic] * c̄ * nv[iv]
+        #    end
+    end
+    for ic in 1:N
+        # f[idx[ic+iϕ, i3]] = f[idx[ic+iϕ, i3]] - c_avg[ic] * L
+        #	 f[idx[coffset+ic,i3]] = u[idx[coffset+ic, i3]] - data.n_E[ic]
+    end
+    return nothing
 end
 
 # ╔═╡ 0b646215-32db-4219-904b-f86f8861b46a
@@ -567,27 +567,24 @@ end
 # ╔═╡ 7bf3a130-3b47-428e-916f-4a0ec1237844
 function ICMPBSystem(
         grid,
-        data::ICMPBData = ICMPBData()
+        data
     )
-    update_derived!(data)
-
     sys = VoronoiFVM.System(
         grid;
         data = data,
         flux = poisson_and_p_flux!,
         reaction = spacecharge!,
         bcondition = bcondition!,
-	#	generic = ionconservation!,
-		unknown_storage=:sparse
+        #	generic = ionconservation!,
+        #        unknown_storage = :sparse
     )
-	
-	enable_species!(sys, data.iφ, [1])
-	enable_species!(sys, data.ip, [1])
- 	for ic in 1:data.N
-  #  	enable_boundary_species!(sys, data.coffset + ic, [3])
+
+    enable_species!(sys, data.iφ, [1])
+    enable_species!(sys, data.ip, [1])
+    for ic in 1:data.N
+        #  	enable_boundary_species!(sys, data.coffset + ic, [3])
     end
 
-    apply_charge!(sys, 0)
     return sys
 end;
 

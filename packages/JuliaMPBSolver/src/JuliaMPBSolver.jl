@@ -19,13 +19,15 @@ include("data_out.jl")
 using .DataOut
 
 
-
 module ICMPBP
-using LessUnitful
-using ExtendableGrids
-using VoronoiFVM
-using LinearAlgebra
-include("icmbp-p.jl")
+    using LessUnitful
+    using ExtendableGrids
+    using VoronoiFVM
+    using LinearAlgebra
+    include("icmbp-p.jl")
 end
 
+include("api.jl")
+
+export mpbpsolve
 end

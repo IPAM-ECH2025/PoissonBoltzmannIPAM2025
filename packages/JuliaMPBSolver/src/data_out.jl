@@ -40,11 +40,11 @@ function write_hdf5_data!(
 end
 
 function read_hdf5_data(filename::String, solution_name::String = "solution")
-  h5open(filename, "r") do file_stream
-    grid_coordinates = read(file_stream["x"])
-    solution = read(file_stream[solution_name])
-    return grid_coordinates, solution
-  end
+    return h5open(filename, "r") do file_stream
+        grid_coordinates = read(file_stream["x"])
+        solution = read(file_stream[solution_name])
+        return grid_coordinates, solution
+    end
 end
 
 function write_csv_data!(filename::String, solution)

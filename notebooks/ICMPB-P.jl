@@ -139,7 +139,7 @@ sys = ICMPBSystem(grid, data; conserveions=true)
 
 # ╔═╡ 684aa24b-046f-426f-9b99-f0c45c70f654
 begin
-	inival=unknowns(sys, inival=0.0)
+	inival=unknowns(sys, inival=0.01)
 	#inival[3:end,i3].=data.n_E/data.cscale
 end
 

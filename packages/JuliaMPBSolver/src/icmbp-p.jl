@@ -294,7 +294,7 @@ q(φ,p)&=e∑\limits_α z_αn_α = ne∑\limits_α z_αy_α\\
 """
 
 # ╔═╡ b07246b8-aec5-4161-8879-8cefb350aced
-function spacecharge(u, data, ddata)
+function spacecharge(u, data)
     (; iφ, ip, i0) = data
     y = u[i0]
     sumyz = zero(eltype(u))
@@ -302,7 +302,8 @@ function spacecharge(u, data, ddata)
     for α in 1:(data.N)
         y = u[α]
         sumyz += data.z[α] * y
-        sumyv += ddata.v[α] * y
+	v=data.vu[α]+ data.κ[α]*data.v0
+        sumyv += v * y
     end
     return data.e * sumyz / sumyv
 end
@@ -313,7 +314,7 @@ md"""
 """
 
 # ╔═╡ a468f43a-aa20-45dc-9c21-77f5adf2d700
-function ysum(u, data, ddata)
+function local_ysum(u, data)
     (; iφ, ip, i0) = data
 
     sumy = u[i0]
@@ -346,19 +347,19 @@ y_α^E&=\frac{n_α^E}{n^E}
 
 # ╔═╡ 7c5e9686-9d66-4ff0-84a7-c7b22596ab57
 begin
-    struct DerivedData
+    struct DerivedData{T}
         "Effective ion volumes"
         v::Vector{Float64}
         "Bulk ion mole fractions"
-        y_E::Vector{Float64}
+        y_E::Vector{T}
         "Bulk solvent mole fraction"
-        y0_E::Float64
+        y0_E::T
     end
 
     function DerivedData(data::ICMPBData, n_E)
         (; κ, v0, vu, T) = data
-        c0 = 1 / v0
-        barc = 0.0
+        c0 = zero(eltype(n_E))+ 1 / v0
+        barc = zero(eltype(n_E))
         v = vu + κ * v0
         N = length(κ)
         for α in 1:N
@@ -511,7 +512,7 @@ function reaction!(f, u, node, data)
     φ = u[iφ]
     p = u[ip]
     ddata = DerivedData(data)
-    f[iφ] = -spacecharge(u, data, ddata)
+    f[iφ] = -spacecharge(u, data)
     f[i0] = u[i0] - y0(p, data, ddata)
     for α in 1:N
         f[α] = u[α] - y_α(φ, p, α, data, ddata)
@@ -522,17 +523,16 @@ end;
 # ╔═╡ 64e47917-9c61-4d64-a6a1-c6e8c7b28c59
 function poisson_and_p_flux!(f, u, edge, data)
     (; iφ, ip, N) = data
-    ddata = DerivedData(data)
     f[iφ] = (1.0 + data.χ) * data.ε_0 * (u[iφ, 1] - u[iφ, 2])
     uu = zeros(eltype(u), N + 3)
     for i in 1:(N + 3)
         uu[i] = u[i, 1]
     end
-    q1 = spacecharge(uu, data, ddata)
+    q1 = spacecharge(uu, data)
     for i in 1:(N + 3)
         uu[i] = u[i, 2]
     end
-    q2 = spacecharge(uu, data, ddata)
+    q2 = spacecharge(uu, data)
     f[ip] =
         (u[ip, 1] - u[ip, 2]) + (u[iφ, 1] - u[iφ, 2]) * (q1 + q2) / (2 * data.pscale)
     return
@@ -627,7 +627,7 @@ function ysum(sys, sol)
     n = size(sol, 2)
     sumy = zeros(n)
     for i in 1:n
-        sumy[i] = ysum(sol[:, i], data, ddata)
+        sumy[i] = local_ysum(sol[:, i], data)
     end
     return sumy
 end

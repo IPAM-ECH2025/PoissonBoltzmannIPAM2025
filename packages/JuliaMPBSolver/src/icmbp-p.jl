@@ -423,14 +423,14 @@ function c_num!(c, φ, p, data, ddata)
     sumyv = data.v0 * y
     for α in 1:(data.N)
         c[α] = y_α(φ, p, α, data, ddata)
-        sumyv += c[α] * data.v[α]
+        sumyv += c[α] * ddata.v[α]
     end
     return c ./= sumyv
 end;
 
 # ╔═╡ 97c5942c-8eb4-4b5c-8951-87ac0c9f396d
 function c0_num!(c, φ, p, data, ddata)
-    y = y0(p, data)
+    y = y0(p, data, ddata)
     sumyv = data.v0 * y
     for α in 1:(data.N)
         c[α] = y_α(φ, p, α, data, ddata)
@@ -470,7 +470,7 @@ function calc_c0num(sol, sys)
     c0 = zeros(nnodes)
     conc = zeros(data.N)
     for i in 1:nnodes
-        @views c0[i] = c0_num!(conc, sol[iφ, i], sol[ip, i], data)
+        @views c0[i] = c0_num!(conc, sol[iφ, i], sol[ip, i], data, ddata)
     end
     return c0
 end;
@@ -583,7 +583,7 @@ end
 function ICMPBSystem(
         grid,
         data;
-        conserveions = true
+        conserveions = false
     )
 
     if conserveions
@@ -639,11 +639,11 @@ function spacecharge_and_ysum!(f, u, node, data, ddata)
 end;
 
 # ╔═╡ 178b947f-3fef-44ed-9eca-fdb9916bc2b6
-function qsweep(sys; qmax = 10, nsteps = 100, verbose="", kwargs...)
+function qsweep(sys; qmax = 10, nsteps = 100, verbose = "", kwargs...)
     data = deepcopy(sys.physics.data)
     (; ip, iφ) = data
     apply_charge!(data, 0 * ph"e" / ufac"nm^2")
-	state=VoronoiFVM.SystemState(sys;data)
+    state = VoronoiFVM.SystemState(sys; data)
     sol = solve!(state; damp_initial = 0.1, verbose, kwargs...)
 
     volts = []

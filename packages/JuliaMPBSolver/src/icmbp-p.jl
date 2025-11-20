@@ -88,11 +88,14 @@ begin
         "Dielectric susceptibility"
         χ::Float64 = 78.49 - 1
 
+        "Solvent molar fraction index"
+        i0::Int = N + 1
+
         "Electric potential species index"
-        iφ::Int = 1
+        iφ::Int = i0 + 1
 
         "Pressure species index"
-        ip::Int = 2
+        ip::Int = iφ + 1
 
         "Offset of n_E in species list"
         coffset::Int = ip
@@ -291,12 +294,13 @@ q(φ,p)&=e∑\limits_α z_αn_α = ne∑\limits_α z_αy_α\\
 """
 
 # ╔═╡ b07246b8-aec5-4161-8879-8cefb350aced
-function spacecharge(φ, p, data, ddata)
-    y = y0(p, data, ddata)
-    sumyz = zero(eltype(p))
+function spacecharge(u, data, ddata)
+    (; iφ, ip, i0) = data
+    y = u[i0]
+    sumyz = zero(eltype(u))
     sumyv = data.v0 * y
     for α in 1:(data.N)
-        y = y_α(φ, p, α, data, ddata)
+        y = u[α]
         sumyz += data.z[α] * y
         sumyv += ddata.v[α] * y
     end
@@ -309,33 +313,15 @@ md"""
 """
 
 # ╔═╡ a468f43a-aa20-45dc-9c21-77f5adf2d700
-function ysum(φ, p, data, ddata)
-    sumy = y0(p, data, ddata)
+function ysum(u, data, ddata)
+    (; iφ, ip, i0) = data
+
+    sumy = u[i0]
     for α in 1:(data.N)
-        sumy += y_α(φ, p, α, data, ddata)
+        sumy += u[α]
     end
     return sumy
 end
-
-# ╔═╡ 978bf1d3-4758-4d01-b1e5-8aed1db9024f
-md"""
-#### spacecharge\_and\_ysum!(f,u,node,data)
-
-VoronoiFVM reaction function. This assumes that terms are on the left hand side.
-In addition to the space charge it calculates the residuum of  the 
-definition of ``y_\alpha`` (32b):
-```math
-∑_α y_α(φ,p)=1
-```
-However, direct usage of this equation leads to slow convergence of Newton's method.
-So we use
-
-```math
-\log\left(∑_α y_α(φ,p)\right)=0
-```
-
-instead.
-"""
 
 # ╔═╡ 13fc2859-496e-4f6e-8b22-36d9d55768b8
 md"""
@@ -418,23 +404,24 @@ Calculate number concentration at discretization node
 """
 
 # ╔═╡ 3ceda3b1-bf1c-4126-b94f-2ee03e8dde99
-function c_num!(c, φ, p, data, ddata)
-    y = y0(p, data, ddata)
+function c_num!(c, u, data, ddata)
+    (; i0, iφ, ip) = data
+    y = u[i0]
     sumyv = data.v0 * y
     for α in 1:(data.N)
-        c[α] = y_α(φ, p, α, data, ddata)
-        sumyv += c[α] * ddata.v[α]
+        sumyv += u[α] * ddata.v[α]
     end
     return c ./= sumyv
 end;
 
 # ╔═╡ 97c5942c-8eb4-4b5c-8951-87ac0c9f396d
 function c0_num!(c, φ, p, data, ddata)
-    y = y0(p, data, ddata)
+    (; i0, iφ, ip) = data
+
+    y = u[i0]
     sumyv = data.v0 * y
     for α in 1:(data.N)
-        c[α] = y_α(φ, p, α, data, ddata)
-        sumyv += c[α] * ddata.v[α]
+        sumyv += u[α] * ddata.v[α]
     end
     return y / sumyv
 end;
@@ -519,24 +506,36 @@ The bulk Dirichlet boundary condition for the pressure is necessary to make the 
 """
 
 # ╔═╡ e1c13f1e-5b67-464b-967b-25e3a93e33d9
-function spacecharge!(f, u, node, data)
-    (; iφ, ip) = data
+function reaction!(f, u, node, data)
+    (; i0, iφ, ip, N) = data
     φ = u[iφ]
     p = u[ip]
     ddata = DerivedData(data)
-    return f[iφ] = -spacecharge(u[iφ], u[ip], data, ddata)
+    f[iφ] = -spacecharge(u, data, ddata)
+    f[i0] = u[i0] - y0(p, data, ddata)
+    for α in 1:N
+        f[α] = u[α] - y_α(φ, p, α, data, ddata)
+    end
+    return
 end;
 
 # ╔═╡ 64e47917-9c61-4d64-a6a1-c6e8c7b28c59
 function poisson_and_p_flux!(f, u, edge, data)
-    (; iφ, ip) = data
+    (; iφ, ip, N) = data
     ddata = DerivedData(data)
     f[iφ] = (1.0 + data.χ) * data.ε_0 * (u[iφ, 1] - u[iφ, 2])
-    q1 = spacecharge(u[iφ, 1], u[ip, 1], data, ddata)
-    q2 = spacecharge(u[iφ, 2], u[ip, 2], data, ddata)
-    return f[ip] =
-        (u[ip, 1] - u[ip, 2]) # +
-    (u[iφ, 1] - u[iφ, 2]) * (q1 + q2) / (2 * data.pscale)
+    uu = zeros(eltype(u), N + 3)
+    for i in 1:(N + 3)
+        uu[i] = u[i, 1]
+    end
+    q1 = spacecharge(uu, data, ddata)
+    for i in 1:(N + 3)
+        uu[i] = u[i, 2]
+    end
+    q2 = spacecharge(uu, data, ddata)
+    f[ip] =
+        (u[ip, 1] - u[ip, 2]) + (u[iφ, 1] - u[iφ, 2]) * (q1 + q2) / (2 * data.pscale)
+    return
 end;
 
 # ╔═╡ 743b9a7a-d6ac-4da0-8538-2045d965b547
@@ -591,7 +590,7 @@ function ICMPBSystem(
             grid;
             data = data,
             flux = poisson_and_p_flux!,
-            reaction = spacecharge!,
+            reaction = reaction!,
             bcondition = bcondition!,
             generic = ionconservation!,
             unknown_storage = :sparse
@@ -601,12 +600,18 @@ function ICMPBSystem(
             grid;
             data = data,
             flux = poisson_and_p_flux!,
-            reaction = spacecharge!,
+            reaction = reaction!,
             bcondition = bcondition!,
         )
     end
+    for i in 1:data.N
+        enable_species!(sys, i, [1])
+    end
+
+    enable_species!(sys, data.i0, [1])
     enable_species!(sys, data.iφ, [1])
     enable_species!(sys, data.ip, [1])
+
     if conserveions
         for ic in 1:data.N
             enable_boundary_species!(sys, data.coffset + ic, [3])
@@ -618,25 +623,14 @@ end;
 # ╔═╡ 48670f54-d303-4c3a-a191-06e6592a2e0a
 function ysum(sys, sol)
     data = sys.physics.data
-    (; iφ, ip) = data
     ddata = DerivedData(data)
     n = size(sol, 2)
     sumy = zeros(n)
     for i in 1:n
-        sumy[i] = ysum(sol[iφ, i], sol[ip, i], data, ddata)
+        sumy[i] = ysum(sol[:, i], data, ddata)
     end
     return sumy
 end
-
-# ╔═╡ 042a452a-1130-4a56-a1b9-b2674803e445
-function spacecharge_and_ysum!(f, u, node, data, ddata)
-    (; iφ, ip) = data
-
-    φ = u[iφ]
-    p = u[ip]
-    f[iφ] = -spacecharge(φ, p, data, ddata)
-    return f[ip] = log(ysum(φ, p, data, ddata)) # this behaves much better with Newton's method
-end;
 
 # ╔═╡ 178b947f-3fef-44ed-9eca-fdb9916bc2b6
 function qsweep(sys; qmax = 10, nsteps = 100, verbose = "", kwargs...)
@@ -644,7 +638,7 @@ function qsweep(sys; qmax = 10, nsteps = 100, verbose = "", kwargs...)
     (; ip, iφ) = data
     apply_charge!(data, 0 * ph"e" / ufac"nm^2")
     state = VoronoiFVM.SystemState(sys; data)
-    sol = solve!(state; damp_initial = 0.1, verbose, kwargs...)
+    sol = solve!(state; inival = 0.01, damp_initial = 0.1, verbose, kwargs...)
 
     volts = []
     Q = []
@@ -716,8 +710,6 @@ end
 # ╠═b07246b8-aec5-4161-8879-8cefb350aced
 # ╟─b41838bb-3d5b-499c-9eb5-137c252ae366
 # ╠═a468f43a-aa20-45dc-9c21-77f5adf2d700
-# ╟─978bf1d3-4758-4d01-b1e5-8aed1db9024f
-# ╠═042a452a-1130-4a56-a1b9-b2674803e445
 # ╠═13fc2859-496e-4f6e-8b22-36d9d55768b8
 # ╠═7c5e9686-9d66-4ff0-84a7-c7b22596ab57
 # ╠═b1e333c0-cdaa-4242-b71d-b54ff71aef83

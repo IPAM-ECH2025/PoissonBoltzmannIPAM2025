@@ -19,12 +19,12 @@ begin
     using Test
     using PythonPlot
     using Colors
-    using JuliaMPBSolver.ICMPBP: ICMPBData, ICMPBSystem, L_Debye, set_molarity!, dlcap0, update_derived!, apply_charge!, ysum
+    using JuliaMPBSolver.ICMPBP: ICMPBData, ICMPBSystem, L_Debye, set_molarity!, dlcap0, DerivedData, apply_charge!, ysum
 end
 
 # ╔═╡ ef660f6f-9de3-4896-a65e-13c60df5de1e
 md"""
-# ICMPB with pressure, solvation and surface charges
+# MPB with pressure, solvation and surface charges
 """
 
 # ╔═╡ 4082c3d3-b728-4bcc-b480-cdee41d9ab99
@@ -84,15 +84,15 @@ end
 let
     data = ICMPBData()
     set_molarity!(data, 0.01)
-    update_derived!(data)
+	ddata=DerivedData(data)
     sumyz = 0.0
-    sumyv = data.y0_E * data.v0
-    sumy = data.y0_E
+    sumyv = ddata.y0_E * data.v0
+    sumy = ddata.y0_E
     for α in 1:data.N
         v = (1.0 + data.κ[α]) * data.v0
-        sumyz += data.y_E[α] * data.z[α]
-        sumyv += data.y_E[α] * v
-        sumy += data.y_E[α]
+        sumyz += ddata.y_E[α] * data.z[α]
+        sumyv += ddata.y_E[α] * v
+        sumy += ddata.y_E[α]
     end
     @test sumyz ≈ 0.0
     @test sumy ≈ 1.0
@@ -114,12 +114,12 @@ dlcap_exact = 0.22846691848825248
 
 # ╔═╡ 05334798-a072-41ae-b23e-f884baadb071
 begin
-    equidata = ICMPBData()
-    set_molarity!(equidata, 0.01)
+    data = ICMPBData()
+    set_molarity!(data, 0.01)
 end
 
 # ╔═╡ ddb3e60b-8571-465f-acf3-2403fb884363
-@test dlcap0(equidata) ≈ dlcap_exact
+@test dlcap0(data) ≈ dlcap_exact
 
 # ╔═╡ a629e8a1-b1d7-42d8-8c17-43475785218e
 begin
@@ -135,12 +135,12 @@ begin
 end
 
 # ╔═╡ 31a1f686-f0b6-430a-83af-187df411b293
-sys_pp = ICMPBSystem(grid, equidata)
+sys = ICMPBSystem(grid, data; conserveions=false)
 
 # ╔═╡ 14ac1c80-cae5-42f1-b0d3-33aa5bba4de6
 begin
-    sol0 = solve(sys_pp, verbose = "n")
-    ysum(sys_pp, sol0)
+    sol0 = solve(sys, verbose = "n")
+    ysum(sys, sol0)
 end
 
 # ╔═╡ efb12e12-825b-4dfd-aa10-c6afb304b6bf
@@ -148,27 +148,27 @@ ph"e" / ufac"nm^2"
 
 # ╔═╡ 6f037b32-e2a8-4693-b46c-952d6b140e8e
 begin
-    apply_charge!(sys_pp, 2 * ph"e" / ufac"nm^2")
-    sol1 = solve(sys_pp, verbose = "n", damp_initial = 0.1)
-    ysum(sys_pp, sol1)
+	data1=apply_charge!(deepcopy(data), 2 * ph"e" / ufac"nm^2")
+	
+    sol1 = solve!(VoronoiFVM.SystemState(sys, data=data1), verbose = "n", damp_initial = 0.1)
 end
 
 # ╔═╡ 1c0145d5-76b1-48c1-8852-de1a2668285a
 molarities = [0.001, 0.01, 0.1, 1]
 
 # ╔═╡ b1a69fe9-a3bd-4e52-95c3-efaa2d5f44c3
-function qsweep(sys; qmax = 10, nsteps = 100)
-    data = sys.physics.data
+function qsweep(sys; qmax = 10, nsteps = 100, verbose="", kwargs...)
+    data = deepcopy(sys.physics.data)
     (; ip, iφ) = data
-    apply_charge!(sys, 0 * ph"e" / ufac"nm^2")
-    sol = solve(sys, damp_initial = 0.1)
+    apply_charge!(data, 0 * ph"e" / ufac"nm^2")
+	state=VoronoiFVM.SystemState(sys;data)
+    sol = solve!(state; damp_initial = 0.1, verbose, kwargs...)
 
     volts = []
     Q = []
     for q in range(0, qmax, length = 50)
-        @info q
-        apply_charge!(sys, q * ph"e" / ufac"nm^2")
-        sol = solve(sys, inival = sol)
+        apply_charge!(data, q * ph"e" / ufac"nm^2")
+        sol = solve!(state; inival = sol, verbose, kwargs...)
         push!(volts, (sol[iφ, end] - sol[iφ, 1]) / 2)
         # Division by  comes in because the voltage we get here is the difference
         # between the electrodes and not the difference between electrode and bulk
@@ -180,7 +180,7 @@ function qsweep(sys; qmax = 10, nsteps = 100)
 end
 
 # ╔═╡ f1c33101-00e6-4af9-9e68-6cdf5fe92b59
-qsweep(sys_pp)
+qsweep(sys)
 
 # ╔═╡ 70e1a34b-9041-4151-91aa-4dd7907a5b13
 function capscalc(sys, molarities)
@@ -188,7 +188,6 @@ function capscalc(sys, molarities)
     for imol in 1:length(molarities)
         data = sys.physics.data
         set_molarity!(data, molarities[imol])
-        update_derived!(data)
 
         t = @elapsed volts, caps = qsweep(sys; qmax = 5, nsteps = 100000)
         cdl0 = dlcap0(data)
@@ -207,7 +206,7 @@ function capscalc(sys, molarities)
 end
 
 # ╔═╡ a7f2692e-a15f-47b7-8486-8948ce7ab3f7
-result_pp = capscalc(sys_pp, molarities)
+result_pp = capscalc(sys, molarities)
 
 # ╔═╡ e114ec0d-13d3-4455-b1c9-d1c5d76671d9
 md"""

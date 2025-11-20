@@ -114,7 +114,7 @@ dlcap_exact = 0.22846691848825248
 
 # ╔═╡ 05334798-a072-41ae-b23e-f884baadb071
 begin
-    data = ICMPBData()
+    data = ICMPBData(; conserveions=true)
     set_molarity!(data, 0.01)
 end
 
@@ -135,13 +135,10 @@ begin
 end
 
 # ╔═╡ 31a1f686-f0b6-430a-83af-187df411b293
-sys = ICMPBSystem(grid, data; conserveions=true)
+sys = ICMPBSystem(grid, data)
 
 # ╔═╡ 684aa24b-046f-426f-9b99-f0c45c70f654
-begin
-	inival=unknowns(sys, inival=0.01)
-	#inival[3:end,i3].=data.n_E/data.cscale
-end
+inival=unknowns(sys, data)
 
 # ╔═╡ 14ac1c80-cae5-42f1-b0d3-33aa5bba4de6
 begin

@@ -302,7 +302,7 @@ function spacecharge(u, data)
     for α in 1:(data.N)
         y = u[α]
         sumyz += data.z[α] * y
-	v=data.vu[α]+ data.κ[α]*data.v0
+        v = data.vu[α] + data.κ[α] * data.v0
         sumyv += v * y
     end
     return data.e * sumyz / sumyv
@@ -358,7 +358,7 @@ begin
 
     function DerivedData(data::ICMPBData, n_E)
         (; κ, v0, vu, T) = data
-        c0 = zero(eltype(n_E))+ 1 / v0
+        c0 = zero(eltype(n_E)) + 1 / v0
         barc = zero(eltype(n_E))
         v = vu + κ * v0
         N = length(κ)
@@ -437,7 +437,12 @@ Obtain ion number densities from system
 # ╔═╡ 800dfed8-9f29-4138-96f8-e8bf1f2f00e6
 function calc_cnum(sol, sys)
     data = sys.physics.data
-    ddata = DerivedData(data) # !!! solution mode
+    i3 = sys.grid[BFaceNodes][3][1]
+    if data.conserveions
+        ddata = DerivedData(data, sol[(data.coffset + 1):end, i3])
+    else
+        ddata = DerivedData(data.n_E)
+    end
     (; iφ, ip) = data
     grid = sys.grid
     nnodes = num_nodes(grid)
@@ -451,7 +456,11 @@ end;
 # ╔═╡ 24910762-7d56-446b-a758-d8e830fe9a09
 function calc_c0num(sol, sys)
     data = sys.physics.data
-    ddata = DerivedData(data)
+    if data.conserveions
+        ddata = DerivedData(data, sol[(data.coffset + 1):end, i3])
+    else
+        ddata = DerivedData(data.n_E)
+    end
     (; iφ, ip) = data
     grid = sys.grid
     nnodes = num_nodes(grid)
@@ -511,11 +520,13 @@ function reaction!(f, u, node, data)
     (; i0, iφ, ip, N) = data
     φ = u[iφ]
     p = u[ip]
-    ddata = DerivedData(data)
     f[iφ] = -spacecharge(u, data)
-    f[i0] = u[i0] - y0(p, data, ddata)
-    for α in 1:N
-        f[α] = u[α] - y_α(φ, p, α, data, ddata)
+    if !data.conserveions
+        ddata = DerivedData(data)
+        f[i0] = u[i0] - y0(p, data, ddata)
+        for α in 1:N
+            f[α] = u[α] - y_α(φ, p, α, data, ddata)
+        end
     end
     return
 end;
@@ -547,13 +558,55 @@ function bcondition!(y, u, bnode, data)
     return nothing
 end
 
+# ╔═╡ 0b646215-32db-4219-904b-f86f8861b46a
+function apply_charge!(data::ICMPBData, q)
+    data.q .= [q, - q]
+    return data
+end
+
+# ╔═╡ 48670f54-d303-4c3a-a191-06e6592a2e0a
+function ysum(sys, sol)
+    data = sys.physics.data
+    ddata = DerivedData(data)
+    n = size(sol, 2)
+    sumy = zeros(n)
+    for i in 1:n
+        sumy[i] = local_ysum(sol[:, i], data)
+    end
+    return sumy
+end
+
+# ╔═╡ b0a45e53-8b98-4e18-8b41-7f6d0bc1f76e
+function VoronoiFVM.unknowns(sys, data::ICMPBData)
+    (; i0, iφ, ip, coffset, N) = data
+    u = unknowns(sys, inival = 0)
+    i3 = sys.grid[BFaceNodes][3][1]
+    for i in 1:N
+        u[i, :] .= 0.1
+        if data.conserveions
+            u[i + coffset, i3] = data.n_E[i] / data.cscale
+        end
+    end
+    u[i0, :] .= 1 - N * 0.1
+    return u
+end
+
 # ╔═╡ dbccaa88-65d9-47ab-be78-83df64a6db24
 function ionconservation!(f, u, sys, data)
-    (; coffset, iφ, ip, N) = data
+    (; coffset, i0, iφ, ip, N, z) = data
     f .= 0
-
     i3 = sys.grid[BFaceNodes][3][1]
     idx = unknown_indices(unknowns(sys))
+    n_E = [u[idx[coffset + i, i3]] * data.cscale for i in 1:N]
+    ddata = DerivedData(data, n_E)
+    if data.conserveions
+        for i in 1:num_nodes(sys.grid)
+            f[idx[i0, i]] = u[idx[i0, i]] - y0(u[idx[ip, i]], data, ddata)
+            for α in 1:N
+                f[idx[α, i]] = u[idx[α, i]] - y_α(u[idx[iφ, i]], u[idx[ip, i]], α, data, ddata)
+            end
+        end
+    end
     #  y = get_tmp(cache, u)
     #  L = sum(nv)
     #  for ic in 1:(N - 1)
@@ -565,27 +618,22 @@ function ionconservation!(f, u, sys, data)
     #   f[idx[ic+iϕ, i3]] += y[ic] * c̄ * nv[iv]
     #    end
     #  end
-    for ic in 1:N
+    f[idx[coffset + N, i3]] = u[idx[coffset + N, i3]]
+    for ic in 1:(N - 1)
         # f[idx[ic+iϕ, i3]] = f[idx[ic+iϕ, i3]] - c_avg[ic] * L
         f[idx[coffset + ic, i3]] = u[idx[coffset + ic, i3]] - data.n_E[ic] / data.cscale
+        f[idx[coffset + N, i3]] += z[ic] * u[idx[coffset + ic, i3]] / z[N]
     end
     return nothing
-end
-
-# ╔═╡ 0b646215-32db-4219-904b-f86f8861b46a
-function apply_charge!(data::ICMPBData, q)
-    data.q .= [q, - q]
-    return data
 end
 
 # ╔═╡ 7bf3a130-3b47-428e-916f-4a0ec1237844
 function ICMPBSystem(
         grid,
-        data;
-        conserveions = false
+        data
     )
 
-    if conserveions
+    if data.conserveions
         sys = VoronoiFVM.System(
             grid;
             data = data,
@@ -612,7 +660,7 @@ function ICMPBSystem(
     enable_species!(sys, data.iφ, [1])
     enable_species!(sys, data.ip, [1])
 
-    if conserveions
+    if data.conserveions
         for ic in 1:data.N
             enable_boundary_species!(sys, data.coffset + ic, [3])
         end
@@ -620,31 +668,19 @@ function ICMPBSystem(
     return sys
 end;
 
-# ╔═╡ 48670f54-d303-4c3a-a191-06e6592a2e0a
-function ysum(sys, sol)
-    data = sys.physics.data
-    ddata = DerivedData(data)
-    n = size(sol, 2)
-    sumy = zeros(n)
-    for i in 1:n
-        sumy[i] = local_ysum(sol[:, i], data)
-    end
-    return sumy
-end
-
 # ╔═╡ 178b947f-3fef-44ed-9eca-fdb9916bc2b6
 function qsweep(sys; qmax = 10, nsteps = 100, verbose = "", kwargs...)
     data = deepcopy(sys.physics.data)
     (; ip, iφ) = data
     apply_charge!(data, 0 * ph"e" / ufac"nm^2")
     state = VoronoiFVM.SystemState(sys; data)
-    sol = solve!(state; inival = 0.01, damp_initial = 0.1, verbose, kwargs...)
+    sol = solve!(state; inival = unknowns(sys, data), damp_initial = 0.1, verbose, kwargs...)
 
     volts = []
     Q = []
     for q in range(0, qmax, length = 50)
         apply_charge!(data, q * ph"e" / ufac"nm^2")
-        sol = solve!(state; inival = sol, verbose, kwargs...)
+        sol = solve!(state; inival = sol, damp_initial = 0.1, verbose, kwargs...)
         push!(volts, (sol[iφ, end] - sol[iφ, 1]) / 2)
         # Division by  comes in because the voltage we get here is the difference
         # between the electrodes and not the difference between electrode and bulk
@@ -732,5 +768,6 @@ end
 # ╠═0b646215-32db-4219-904b-f86f8861b46a
 # ╠═7bf3a130-3b47-428e-916f-4a0ec1237844
 # ╠═48670f54-d303-4c3a-a191-06e6592a2e0a
+# ╠═b0a45e53-8b98-4e18-8b41-7f6d0bc1f76e
 # ╠═178b947f-3fef-44ed-9eca-fdb9916bc2b6
 # ╠═fc84996b-02c0-4c16-8632-79f4e1900f78

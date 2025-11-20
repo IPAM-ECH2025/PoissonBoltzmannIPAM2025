@@ -135,14 +135,14 @@ begin
 end
 
 # ╔═╡ 31a1f686-f0b6-430a-83af-187df411b293
-sys = ICMPBSystem(grid, data; conserveions=false)
+sys = ICMPBSystem(grid, data)
 
 # ╔═╡ 9b16c019-f2ce-4b42-97e1-6d13a463a232
-unknowns(sys;inival=0)
+inival=unknowns(sys,data)
 
 # ╔═╡ 14ac1c80-cae5-42f1-b0d3-33aa5bba4de6
 begin
-    sol0 = solve(sys; inival=0.1, verbose = "n", damp_initial=0.1)
+    sol0 = solve(sys; inival, verbose = "n", damp_initial=0.1)
     ysum(sys, sol0)
 end
 
@@ -153,7 +153,7 @@ ph"e" / ufac"nm^2"
 begin
 	data1=apply_charge!(deepcopy(data), 2 * ph"e" / ufac"nm^2")
 	
-    sol1 = solve!(VoronoiFVM.SystemState(sys, data=data1); inival=0.1, verbose = "n", damp_initial = 0.1)
+    sol1 = solve!(VoronoiFVM.SystemState(sys, data=data1); inival, verbose = "n", damp_initial = 0.1)
 end
 
 # ╔═╡ 1c0145d5-76b1-48c1-8852-de1a2668285a

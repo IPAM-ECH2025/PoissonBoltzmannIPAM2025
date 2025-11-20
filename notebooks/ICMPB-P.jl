@@ -19,7 +19,7 @@ begin
     using Test
     using PythonPlot
     using Colors
-    using JuliaMPBSolver.ICMPBP: ICMPBData, ICMPBSystem, L_Debye, set_molarity!, dlcap0, update_derived!, apply_charge!, ysum
+    using JuliaMPBSolver.ICMPBP: ICMPBData, ICMPBSystem, L_Debye, set_molarity!, dlcap0, DerivedData, apply_charge!, ysum, qsweep, capscalc
 end
 
 # ╔═╡ ef660f6f-9de3-4896-a65e-13c60df5de1e
@@ -84,15 +84,15 @@ end
 let
     data = ICMPBData()
     set_molarity!(data, 0.01)
-    update_derived!(data)
+    ddata=DerivedData(data)
     sumyz = 0.0
-    sumyv = data.y0_E * data.v0
-    sumy = data.y0_E
+    sumyv = ddata.y0_E * data.v0
+    sumy = ddata.y0_E
     for α in 1:data.N
         v = (1.0 + data.κ[α]) * data.v0
-        sumyz += data.y_E[α] * data.z[α]
-        sumyv += data.y_E[α] * v
-        sumy += data.y_E[α]
+        sumyz += ddata.y_E[α] * data.z[α]
+        sumyv += ddata.y_E[α] * v
+        sumy += ddata.y_E[α]
     end
     @test sumyz ≈ 0.0
     @test sumy ≈ 1.0
@@ -165,56 +165,8 @@ end
 # ╔═╡ 1c0145d5-76b1-48c1-8852-de1a2668285a
 molarities = [0.001, 0.01, 0.1, 1]
 
-# ╔═╡ b1a69fe9-a3bd-4e52-95c3-efaa2d5f44c3
-function qsweep(sys; qmax = 10, nsteps = 100)
-    data = deepcopy(sys.physics.data)
-    (; ip, iφ) = data
-    apply_charge!(data, 0 * ph"e" / ufac"nm^2")
-	state=VoronoiFVM.SystemState(sys;data)
-    sol = solve!(state, damp_initial = 0.1)
-
-    volts = []
-    Q = []
-    for q in range(0, qmax, length = 50)
-        @info q
-        apply_charge!(data, q * ph"e" / ufac"nm^2")
-        sol = solve!(state, inival = sol)
-        push!(volts, (sol[iφ, end] - sol[iφ, 1]) / 2)
-        # Division by  comes in because the voltage we get here is the difference
-        # between the electrodes and not the difference between electrode and bulk
-        # which corresponds to the other standard dlcap experiment
-        push!(Q, q * ph"e" / ufac"nm^2")
-    end
-    dlcaps = -(Q[2:end] - Q[1:(end - 1)]) ./ (volts[2:end] - volts[1:(end - 1)])
-    return volts[1:(end - 1)], dlcaps
-end
-
 # ╔═╡ f1c33101-00e6-4af9-9e68-6cdf5fe92b59
 qsweep(sys)
-
-# ╔═╡ 70e1a34b-9041-4151-91aa-4dd7907a5b13
-function capscalc(sys, molarities)
-    result = []
-    for imol in 1:length(molarities)
-        data = sys.physics.data
-        set_molarity!(data, molarities[imol])
-        update_derived!(data)
-
-        t = @elapsed volts, caps = qsweep(sys; qmax = 5, nsteps = 100000)
-        cdl0 = dlcap0(data)
-        @info "elapsed=$(t)"
-        push!(
-            result,
-            (
-                voltages = volts,
-                dlcaps = caps,
-                cdl0 = cdl0,
-                molarity = molarities[imol],
-            ),
-        )
-    end
-    return result
-end
 
 # ╔═╡ a7f2692e-a15f-47b7-8486-8948ce7ab3f7
 result_pp = capscalc(sys, molarities)
@@ -292,9 +244,7 @@ end
 # ╠═efb12e12-825b-4dfd-aa10-c6afb304b6bf
 # ╠═6f037b32-e2a8-4693-b46c-952d6b140e8e
 # ╠═1c0145d5-76b1-48c1-8852-de1a2668285a
-# ╠═b1a69fe9-a3bd-4e52-95c3-efaa2d5f44c3
 # ╠═f1c33101-00e6-4af9-9e68-6cdf5fe92b59
-# ╠═70e1a34b-9041-4151-91aa-4dd7907a5b13
 # ╠═a7f2692e-a15f-47b7-8486-8948ce7ab3f7
 # ╟─e114ec0d-13d3-4455-b1c9-d1c5d76671d9
 # ╟─0b6f33b9-41d4-48fd-8026-8a3bddcc1989

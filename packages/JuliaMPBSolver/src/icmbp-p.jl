@@ -638,6 +638,52 @@ function spacecharge_and_ysum!(f, u, node, data, ddata)
     return f[ip] = log(ysum(φ, p, data, ddata)) # this behaves much better with Newton's method
 end;
 
+# ╔═╡ 178b947f-3fef-44ed-9eca-fdb9916bc2b6
+function qsweep(sys; qmax = 10, nsteps = 100, verbose="", kwargs...)
+    data = deepcopy(sys.physics.data)
+    (; ip, iφ) = data
+    apply_charge!(data, 0 * ph"e" / ufac"nm^2")
+	state=VoronoiFVM.SystemState(sys;data)
+    sol = solve!(state; damp_initial = 0.1, verbose, kwargs...)
+
+    volts = []
+    Q = []
+    for q in range(0, qmax, length = 50)
+        apply_charge!(data, q * ph"e" / ufac"nm^2")
+        sol = solve!(state; inival = sol, verbose, kwargs...)
+        push!(volts, (sol[iφ, end] - sol[iφ, 1]) / 2)
+        # Division by  comes in because the voltage we get here is the difference
+        # between the electrodes and not the difference between electrode and bulk
+        # which corresponds to the other standard dlcap experiment
+        push!(Q, q * ph"e" / ufac"nm^2")
+    end
+    dlcaps = -(Q[2:end] - Q[1:(end - 1)]) ./ (volts[2:end] - volts[1:(end - 1)])
+    return volts[1:(end - 1)], dlcaps
+end
+
+# ╔═╡ fc84996b-02c0-4c16-8632-79f4e1900f78
+function capscalc(sys, molarities)
+    result = []
+    for imol in 1:length(molarities)
+        data = sys.physics.data
+        set_molarity!(data, molarities[imol])
+
+        t = @elapsed volts, caps = qsweep(sys; qmax = 5, nsteps = 100000)
+        cdl0 = dlcap0(data)
+        @info "elapsed=$(t)"
+        push!(
+            result,
+            (
+                voltages = volts,
+                dlcaps = caps,
+                cdl0 = cdl0,
+                molarity = molarities[imol],
+            ),
+        )
+    end
+    return result
+end
+
 # ╔═╡ Cell order:
 # ╠═ef660f6f-9de3-4896-a65e-13c60df5de1e
 # ╠═60941eaa-1aea-11eb-1277-97b991548781
@@ -694,3 +740,5 @@ end;
 # ╠═0b646215-32db-4219-904b-f86f8861b46a
 # ╠═7bf3a130-3b47-428e-916f-4a0ec1237844
 # ╠═48670f54-d303-4c3a-a191-06e6592a2e0a
+# ╠═178b947f-3fef-44ed-9eca-fdb9916bc2b6
+# ╠═fc84996b-02c0-4c16-8632-79f4e1900f78

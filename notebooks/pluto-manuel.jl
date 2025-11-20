@@ -109,7 +109,7 @@ begin
         # ey0 from incompressibility (ey0 = 1 - yA - yC)
         y0 = 1.0 - yA - yC
         # numerator: e0 * sum zα eyα
-        numer = e0 * (zA * yA + zC * yC)
+        number = e0 * (zA * yA + zC * yC)
         # denominator: vR0*ey0 + sum (κ_α vR0 + vRα) eyα
         denom = vR0 * y0 + (κA * vR0 + vRA) * yA + (κC * vR0 + vRC) * yC
         # convert to charge density (C per m^3)

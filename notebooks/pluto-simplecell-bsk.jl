@@ -126,7 +126,7 @@ md"""
 md"""
 ### BSK modification
 
-Motivated by MD experiements by Fedorov/Kornyshev 
+Motivated by MD experiments by Fedorov/Kornyshev 
 """
 
 # ╔═╡ ad1ca3eb-6020-4994-93a5-0cde9c92318d

@@ -299,13 +299,13 @@ begin
     """
         EquilibriumData
 
-    Data structure containg data for equilibrum calculations
+    Data structure contaning data for equilibrium calculations
     """
     Base.@kwdef mutable struct EquilibriumData
         N::Int64 = 2                     # number of ionic species
         T::Float64 = 298.15 * ufac"K"        # temperature
         kT::Float64 = ph"k_B" * T             # temperature
-        p_ref::Float64 = 1.0e5 * ufac"Pa"        # referece pressure
+        p_ref::Float64 = 1.0e5 * ufac"Pa"        # reference pressure
         pscale::Float64 = 1.0 * ufac"GPa"         # pressure scaling nparameter
         E_ref::Float64 = 0.0 * ufac"V"           # reference voltage
         n0_ref::Float64 = 55.508 * ph"N_A" / ufac"dm^3"  # solvent molarity
@@ -422,7 +422,7 @@ md"""
 md"""
 #### create\_equilibrium\_system(grid,data)
 
-Create equlibrium system, enable species and apply zero voltage
+Create equilibrium system, enable species and apply zero voltage
 """
 
 # ╔═╡ c8822d32-affe-473e-8dbf-84aa83b3580c

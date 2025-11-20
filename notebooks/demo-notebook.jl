@@ -19,7 +19,7 @@ md"""
 
 # ╔═╡ 882dda23-63b9-4b1e-a04e-69071deff69a
 md"""
-This notebook is only relocateable together with the whole {PKGNAME} project.
+This notebook is only relocatable together with the whole {PKGNAME} project.
 All packages used by this notebook need to be added to the environment in 
 $(dirname(joinpath(@__DIR__,".."))).
 """

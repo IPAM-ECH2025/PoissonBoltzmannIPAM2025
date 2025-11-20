@@ -44,7 +44,7 @@ md"""
 
 # ╔═╡ 4cabef42-d9f9-43fe-988e-7b54462dc775
 md"""
-#### EquilibriumData
+#### ICMPBData
 """
 
 # ╔═╡ 30c6a176-935b-423f-9447-86f78746322f
@@ -267,12 +267,12 @@ end;
 # ╔═╡ 0d825f88-cd67-4368-90b3-29f316b72e6e
 begin
     """
-        EquilibriumData
+        ICMPBData
 
     Data structure containg data for equilibrum calculations
     All data including molarity in SI basic units
     """
-    Base.@kwdef mutable struct EquilibriumData
+    Base.@kwdef mutable struct ICMPBData
 
         "Ion charge numbers."
         z::Vector{Int} = [-1, 1]
@@ -311,6 +311,8 @@ begin
         "Pressure species index"
         ip::Int = 2
 
+	    "Offset of n_E in species list"
+	    coffset::Int = ip
 
         "Reference pressure"
         p_ref::Float64 = 1.0e5 * ufac"Pa"
@@ -346,14 +348,14 @@ begin
 end
 
 # ╔═╡ 5d6340c4-2ddd-429b-a60b-3de5570a7398
-function set_molarity!(data::EquilibriumData, M_E)
+function set_molarity!(data::ICMPBData, M_E)
     n_E = M_E * ph"N_A" / ufac"dm^3"
     data.molarity = n_E
     return data.n_E = fill(n_E, data.N)
 end
 
 # ╔═╡ 1d22b09e-99c1-4026-9505-07bdffc98582
-function dlcap0(data::EquilibriumData)
+function dlcap0(data::ICMPBData)
     return sqrt(
         2 * (1 + data.χ) * ph"ε_0" * ph"e"^2 * data.n_E[1] / (ph"k_B" * data.T),
     )
@@ -363,7 +365,7 @@ end;
 # ╠═╡ skip_as_script = true
 #=╠═╡
 let
-    data=EquilibriumData()
+    data=ICMPBData()
     set_molarity!(data,0.01)
     data.χ=78.49-1
     cdl0=dlcap0(data)
@@ -373,7 +375,7 @@ end
 
 # ╔═╡ 3d9a47b8-2754-4a21-84a4-39cbeab12286
 begin
-    function update_derived!(data::EquilibriumData)
+    function update_derived!(data::ICMPBData)
         (; κ, v0, vu, n_E, T) = data
         return data.v, data.y_E, data.y0_E = derived(κ, v0, vu, n_E, T)
     end
@@ -381,7 +383,7 @@ end
 
 # ╔═╡ b1e333c0-cdaa-4242-b71d-b54ff71aef83
 let
-    data = EquilibriumData()
+    data = ICMPBData()
     set_molarity!(data, 0.01)
     update_derived!(data)
     sumyz = 0.0
@@ -533,6 +535,29 @@ function bcondition!(y, u, bnode, data)
     return nothing
 end
 
+# ╔═╡ dbccaa88-65d9-47ab-be78-83df64a6db24
+function ionconservation!(f, u, sys, data)
+  (; coffset, iφ, ip, N) = data
+   i3=sys.grid[BFaceNodes][3][1]
+	idx = unknown_indices(unknowns(sys));
+#  y = get_tmp(cache, u)
+#  L = sum(nv)
+  for ic in 1:(N-1)
+#    f[idx[ic+iϕ, i3]] = 0
+  end
+#  for iv in 1:length(nv)
+#	cnum!(y,u[idx[iϕ, iv]], u[idx[ip, iv]], data) 
+    for ic in 1:(N-1)
+   #   f[idx[ic+iϕ, i3]] += y[ic] * c̄ * nv[iv]
+#    end
+  end
+  for ic in 1:N
+   # f[idx[ic+iϕ, i3]] = f[idx[ic+iϕ, i3]] - c_avg[ic] * L
+#	 f[idx[coffset+ic,i3]] = u[idx[coffset+ic, i3]] - data.n_E[ic]
+  end
+  return nothing
+end
+
 # ╔═╡ 0b646215-32db-4219-904b-f86f8861b46a
 function apply_charge!(sys, q)
     data = sys.physics.data
@@ -540,9 +565,9 @@ function apply_charge!(sys, q)
 end
 
 # ╔═╡ 7bf3a130-3b47-428e-916f-4a0ec1237844
-function create_equilibrium_pp_system(
+function ICMPBSystem(
         grid,
-        data::EquilibriumData = EquilibriumData()
+        data::ICMPBData = ICMPBData()
     )
     update_derived!(data)
 
@@ -552,8 +577,16 @@ function create_equilibrium_pp_system(
         flux = poisson_and_p_flux!,
         reaction = spacecharge!,
         bcondition = bcondition!,
-        species = [data.iφ, data.ip],
+	#	generic = ionconservation!,
+		unknown_storage=:sparse
     )
+	
+	enable_species!(sys, data.iφ, [1])
+	enable_species!(sys, data.ip, [1])
+ 	for ic in 1:data.N
+  #  	enable_boundary_species!(sys, data.coffset + ic, [3])
+    end
+
     apply_charge!(sys, 0)
     return sys
 end;
@@ -634,6 +667,7 @@ end;
 # ╠═e1c13f1e-5b67-464b-967b-25e3a93e33d9
 # ╠═64e47917-9c61-4d64-a6a1-c6e8c7b28c59
 # ╠═743b9a7a-d6ac-4da0-8538-2045d965b547
+# ╠═dbccaa88-65d9-47ab-be78-83df64a6db24
 # ╠═0b646215-32db-4219-904b-f86f8861b46a
 # ╠═7bf3a130-3b47-428e-916f-4a0ec1237844
 # ╠═48670f54-d303-4c3a-a191-06e6592a2e0a

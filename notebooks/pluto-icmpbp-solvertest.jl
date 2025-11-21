@@ -42,15 +42,15 @@ md"""
 This code implements the model described in
 [Müller, R., Fuhrmann, J., & Landstorfer, M. (2020). Modeling polycrystalline electrode-electrolyte interfaces: The differential capacitance. Journal of The Electrochemical Society, 2020, 167(10), 106512](https://iopscience.iop.org/article/10.1149/1945-7111/ab9cca/meta) with surface charge boundary conditions in a symmetric cell and ion conservation constraint.
 
-For the later, see e.g. H. Sugyioka, "Ion-Conserving Modified Poisson–Boltzmann Theory Considering a Steric Effect in an Electrolyte", Journal of the Physical Society of Japan, 2016, Vol. 85, No. 12, DOI [10.7566/JPSJ.85.124006](https://doi.org/10.7566/JPSJ.85.124006)
+For the later, see e.g. H. Sugioka, "Ion-Conserving Modified Poisson–Boltzmann Theory Considering a Steric Effect in an Electrolyte", Journal of the Physical Society of Japan, 2016, Vol. 85, No. 12, DOI [10.7566/JPSJ.85.124006](https://doi.org/10.7566/JPSJ.85.124006)
 
 
 """
 
 # ╔═╡ aa9cfb26-ad55-4f37-804a-b33b706e9427
 md"""
-### Poisson equation
-
+## Poisson equation
+Domain: ``\Omega=(0,L)``
 ```math
 -∇⋅(1+χ)ε_0∇φ = q(φ,p)
 ```
@@ -69,6 +69,11 @@ y_α(φ,p)=y_α^E\exp\left(\frac{-z_αe}{k_BT}(φ- φ^E)-\frac{v_α}{k_BT}(p-p^E
 
 """
 
+
+# ╔═╡ 4d571068-133f-4b1a-86f6-3225439652eb
+md"""
+## Parameters
+"""
 
 # ╔═╡ 1facab2a-6ebf-492f-978f-2ace26b3bc4f
 md"""
@@ -92,11 +97,11 @@ y_α^E&=\frac{n_α^E}{n^E}
 
 # ╔═╡ e89e4da3-a2e4-41a3-99d9-327a9b862d28
 md"""
-### Surface with given value of `q`
+## Surface with given charge `q`
 ```math
 \begin{aligned}
 	(1+χ)\varepsilon_0\nabla \phi|_{z=0} &= q\\
-	(1+χ)\varepsilon_0\nabla \phi|_{z=L} &= -q
+	-(1+χ)\varepsilon_0\nabla \phi|_{z=L} &= -q
 \end{aligned}
 ```
 
@@ -104,7 +109,7 @@ md"""
 
 # ╔═╡ 63d99173-c779-4e72-b96f-15b27aec55cf
 md"""
-### Pressure equation
+## Pressure equation
 Pressure is calculated according to [J. Fuhrmann, “Comparison and numerical treatment of generalised Nernst–Planck models,” Computer Physics Communications, vol. 196, pp. 166–178, 2015.](https://dx.doi.org/10.1016/j.cpc.2015.06.004).
 
 Starting with the momentum balance in mechanical equilibrium
@@ -118,7 +123,7 @@ by taking the divergence on both sides of the equation, one derives the pressure
 	(\nabla p + q\nabla \varphi)\cdot \vec n &=0 & \text{on}\; \partial\Omega\\
 \end{aligned}
 ```
-In order to obtain uniquness, the pressure in the center of the domain is set to zero:
+In order to obtain uniqueness, the pressure in the center of the domain is set to zero:
 ```math
       p|_{x=\frac{L}2}=0
 ```
@@ -126,13 +131,37 @@ In order to obtain uniquness, the pressure in the center of the domain is set to
 
 # ╔═╡ bab7b779-339d-4702-a88a-e6cbf5a72cd0
 md"""
-### Ion conservation
+## Ion conservation
 
 Ion conservation is expressed by the constraint
 ```math
-	\frac1{|\Omega|}\int\limits_\Omega n_α d\omega = n_α^{avg}\quad (α=1\dots N)
+	\frac1{|\Omega|}\int\limits_\Omega n_α d\omega = n_α^{avg}\quad (α=1\dots N).
 ```
 In order to implement this condition, the constraints (for ``α=1\dots N-1``) are added to the system, and the bulk molarities ``n_α^E`` are made variables with the electroneutrality constraint ``\sum\limits_{\alpha=1}^N z_α n_α^E =0``  .
+"""
+
+# ╔═╡ 16a79117-e89b-4478-a571-8c011b5784c1
+md"""
+## Simulation result
+"""
+
+# ╔═╡ 7caea4c4-9783-403c-931c-681f86166a25
+md"""
+## Next steps
+"""
+
+# ╔═╡ 65c0b7fa-de4f-454e-ac63-2723d5acc26c
+md"""
+- Finalize pyiron integration
+- Discuss comparison with molecular simulation results
+- Add dielectric decrement model 
+- Discuss additional molecular interactio terms
+- Write paper
+"""
+
+# ╔═╡ 760e5861-7a6f-41bb-8aec-5e7466c6ec9f
+md"""
+## Simulation setup and run
 """
 
 # ╔═╡ f4facb34-1f4a-432d-8a1e-30299e542bcd
@@ -148,6 +177,11 @@ end
 
 # ╔═╡ ae11bded-9f67-4004-8786-ed54e1ccb932
 surfcharge(n) = n * ph"e" / ufac"nm^2"
+
+# ╔═╡ f75f1d3a-47e5-475b-97b1-bb275a510783
+md"""
+### Helper functions
+"""
 
 # ╔═╡ dc05f31c-a28e-4470-8916-72dda567b149
 myround(x) = round(x, sigdigits = 4)
@@ -297,12 +331,6 @@ function plotsol(
 end
 
 
-# ╔═╡ b062320f-644a-40d0-a7ba-6dcf0f9ee9bc
-surfcharge(n1_e)
-
-# ╔═╡ ab92ab0a-0e2a-49a7-98d6-c8069efe85ff
-M1_avg * mol / dm^3 * N_A * ph"e" * L
-
 # ╔═╡ eacdd772-1869-406a-b601-64cdd6453ec1
 begin
     data1 = ICMPBData(
@@ -320,32 +348,42 @@ sys1 = ICMPBSystem(grid, data1);
 inival1 = unknowns(sys1, data1);
 
 # ╔═╡ d2df6ed0-e6f5-4677-b790-bfc40de7fd6a
-sol1 = solve(sys1; inival = inival1, damp_initial = 0.1, verbose = "n")
+sol1 = solve(sys1; inival = inival1, damp_initial = 0.1, verbose = "n", log=true)
+
+# ╔═╡ 5f153fe4-4476-401e-8674-b6902213c19e
+md"""
+Newton steps: $(length(history(sol1)))
+"""
 
 # ╔═╡ c7a08779-53f3-4fab-8bd4-3dffe6135c3b
 plotsol(sol1, sys1; Mscale)
 
 # ╔═╡ Cell order:
-# ╟─ef660f6f-9de3-4896-a65e-13c60df5de1e
 # ╠═60941eaa-1aea-11eb-1277-97b991548781
+# ╟─ef660f6f-9de3-4896-a65e-13c60df5de1e
 # ╟─920b7d84-56c6-4958-aed9-fc67ba0c43f6
 # ╟─aa9cfb26-ad55-4f37-804a-b33b706e9427
+# ╟─4d571068-133f-4b1a-86f6-3225439652eb
 # ╟─1facab2a-6ebf-492f-978f-2ace26b3bc4f
 # ╟─275536e9-394d-4686-b37c-ef10a623b400
 # ╟─e89e4da3-a2e4-41a3-99d9-327a9b862d28
 # ╟─63d99173-c779-4e72-b96f-15b27aec55cf
 # ╟─bab7b779-339d-4702-a88a-e6cbf5a72cd0
+# ╟─16a79117-e89b-4478-a571-8c011b5784c1
+# ╟─5f153fe4-4476-401e-8674-b6902213c19e
+# ╟─c7a08779-53f3-4fab-8bd4-3dffe6135c3b
+# ╟─7caea4c4-9783-403c-931c-681f86166a25
+# ╟─65c0b7fa-de4f-454e-ac63-2723d5acc26c
+# ╟─760e5861-7a6f-41bb-8aec-5e7466c6ec9f
 # ╠═f4facb34-1f4a-432d-8a1e-30299e542bcd
+# ╠═2ef6b8d7-e5f3-4700-8a40-8feffab3569f
 # ╠═a629e8a1-b1d7-42d8-8c17-43475785218e
 # ╠═ae11bded-9f67-4004-8786-ed54e1ccb932
-# ╠═b062320f-644a-40d0-a7ba-6dcf0f9ee9bc
-# ╠═ab92ab0a-0e2a-49a7-98d6-c8069efe85ff
-# ╟─2ef6b8d7-e5f3-4700-8a40-8feffab3569f
-# ╠═c7a08779-53f3-4fab-8bd4-3dffe6135c3b
 # ╠═eacdd772-1869-406a-b601-64cdd6453ec1
 # ╠═8433319f-2f78-494c-9b2e-a5390cf93b00
 # ╠═70910bd5-b8ca-4021-9b40-233b50ea5601
 # ╠═d2df6ed0-e6f5-4677-b790-bfc40de7fd6a
+# ╟─f75f1d3a-47e5-475b-97b1-bb275a510783
 # ╠═dc05f31c-a28e-4470-8916-72dda567b149
 # ╠═f579cf2d-9511-48a8-bf11-7400ef76ee3d
 # ╠═000e87b5-cd1b-4b23-99be-6b7006502312

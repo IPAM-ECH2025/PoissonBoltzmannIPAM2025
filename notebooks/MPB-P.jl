@@ -84,7 +84,7 @@ end
 let
     data = ICMPBData()
     set_molarity!(data, 0.01)
-	ddata=DerivedData(data)
+    ddata = DerivedData(data)
     sumyz = 0.0
     sumyv = ddata.y0_E * data.v0
     sumy = ddata.y0_E
@@ -138,11 +138,11 @@ end
 sys = ICMPBSystem(grid, data)
 
 # ╔═╡ 9b16c019-f2ce-4b42-97e1-6d13a463a232
-inival=unknowns(sys,data)
+inival = unknowns(sys, data)
 
 # ╔═╡ 14ac1c80-cae5-42f1-b0d3-33aa5bba4de6
 begin
-    sol0 = solve(sys; inival, verbose = "n", damp_initial=0.1)
+    sol0 = solve(sys; inival, verbose = "n", damp_initial = 0.1)
     ysum(sys, sol0)
 end
 
@@ -151,9 +151,9 @@ ph"e" / ufac"nm^2"
 
 # ╔═╡ 6f037b32-e2a8-4693-b46c-952d6b140e8e
 begin
-	data1=apply_charge!(deepcopy(data), 2 * ph"e" / ufac"nm^2")
-	
-    sol1 = solve!(VoronoiFVM.SystemState(sys, data=data1); inival, verbose = "n", damp_initial = 0.1)
+    data1 = apply_charge!(deepcopy(data), 2 * ph"e" / ufac"nm^2")
+
+    sol1 = solve!(VoronoiFVM.SystemState(sys, data = data1); inival, verbose = "n", damp_initial = 0.1)
 end
 
 # ╔═╡ 1c0145d5-76b1-48c1-8852-de1a2668285a

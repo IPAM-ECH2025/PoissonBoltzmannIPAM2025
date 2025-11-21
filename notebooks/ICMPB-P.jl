@@ -84,7 +84,7 @@ end
 let
     data = ICMPBData()
     set_molarity!(data, 0.01)
-    ddata=DerivedData(data)
+    ddata = DerivedData(data)
     sumyz = 0.0
     sumyv = ddata.y0_E * data.v0
     sumy = ddata.y0_E
@@ -111,7 +111,7 @@ end;
 
 # ╔═╡ 05334798-a072-41ae-b23e-f884baadb071
 begin
-    data = ICMPBData(; conserveions=true)
+    data = ICMPBData(; conserveions = true)
     set_molarity!(data, 1)
 end
 
@@ -125,19 +125,19 @@ begin
 
     grid = ExtendableGrids.simplexgrid(X)
     bfacemask!(grid, [L / 2], [L / 2], 3, tol = 1.0e-10 * nm)
-	i3=grid[BFaceNodes][3][1]
+    i3 = grid[BFaceNodes][3][1]
 end
 
 # ╔═╡ 31a1f686-f0b6-430a-83af-187df411b293
 sys = ICMPBSystem(grid, data)
 
 # ╔═╡ 684aa24b-046f-426f-9b99-f0c45c70f654
-inival=unknowns(sys, data);
+inival = unknowns(sys, data);
 
 # ╔═╡ 14ac1c80-cae5-42f1-b0d3-33aa5bba4de6
 begin
-	state=VoronoiFVM.SystemState(sys)
-    sol0 = solve!(state; inival, verbose = "n", damp_initial=0.1)
+    state = VoronoiFVM.SystemState(sys)
+    sol0 = solve!(state; inival, verbose = "n", damp_initial = 0.1)
 end
 
 # ╔═╡ d6f1acbc-d2b0-4d26-b9f6-ad46b9ddfb05
@@ -153,24 +153,24 @@ data.conserveions
 ph"e" / ufac"nm^2"
 
 # ╔═╡ 9108a7e6-176e-481b-8ca6-3c8445051e1c
-data.n_avg/ph"N_A"
+data.n_avg / ph"N_A"
 
 # ╔═╡ 6f037b32-e2a8-4693-b46c-952d6b140e8e
 begin
-	data1=apply_charge!(deepcopy(data), 1 * ph"e" / ufac"nm^2")
-	
-    sol1 = solve!(VoronoiFVM.SystemState(sys, data=data1); inival, verbose = "n", damp_initial = 0.1)
-	sol1[:, i3]
+    data1 = apply_charge!(deepcopy(data), 1 * ph"e" / ufac"nm^2")
+
+    sol1 = solve!(VoronoiFVM.SystemState(sys, data = data1); inival, verbose = "n", damp_initial = 0.1)
+    sol1[:, i3]
 end
 
 # ╔═╡ 1c0145d5-76b1-48c1-8852-de1a2668285a
 molarities = [0.1, 1]
 
 # ╔═╡ f1c33101-00e6-4af9-9e68-6cdf5fe92b59
-qsweep(sys, verbose="n", qmax=2)
+qsweep(sys, verbose = "n", qmax = 2)
 
 # ╔═╡ a7f2692e-a15f-47b7-8486-8948ce7ab3f7
-result_pp = capscalc(sys, molarities; qmax=1)
+result_pp = capscalc(sys, molarities; qmax = 1)
 
 # ╔═╡ e114ec0d-13d3-4455-b1c9-d1c5d76671d9
 md"""

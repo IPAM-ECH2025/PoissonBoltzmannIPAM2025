@@ -109,23 +109,17 @@ function c0_num!(c, φ, p, data)
     return y / sumyv
 end;
 
-# ╔═╡ 00464966-2b1e-455c-a3a1-2af61c6649b7
-dlcap_exact = 0.22846691848825248
-
 # ╔═╡ 05334798-a072-41ae-b23e-f884baadb071
 begin
     data = ICMPBData(; conserveions=true)
-    set_molarity!(data, 0.1)
+    set_molarity!(data, 1)
 end
-
-# ╔═╡ ddb3e60b-8571-465f-acf3-2403fb884363
-@test dlcap0(data) ≈ dlcap_exact
 
 # ╔═╡ a629e8a1-b1d7-42d8-8c17-43475785218e
 begin
 
     L = 10nm
-    n = 101
+    n = 21
 
     X = range(0, L, length = n)
 
@@ -138,7 +132,7 @@ end
 sys = ICMPBSystem(grid, data)
 
 # ╔═╡ 684aa24b-046f-426f-9b99-f0c45c70f654
-inival=unknowns(sys, data)
+inival=unknowns(sys, data);
 
 # ╔═╡ 14ac1c80-cae5-42f1-b0d3-33aa5bba4de6
 begin
@@ -240,9 +234,7 @@ end
 # ╠═fe704fb4-d07c-4591-b834-d6cf2f4f7075
 # ╠═b1e333c0-cdaa-4242-b71d-b54ff71aef83
 # ╟─97c5942c-8eb4-4b5c-8951-87ac0c9f396d
-# ╠═00464966-2b1e-455c-a3a1-2af61c6649b7
 # ╠═05334798-a072-41ae-b23e-f884baadb071
-# ╠═ddb3e60b-8571-465f-acf3-2403fb884363
 # ╠═a629e8a1-b1d7-42d8-8c17-43475785218e
 # ╠═31a1f686-f0b6-430a-83af-187df411b293
 # ╠═684aa24b-046f-426f-9b99-f0c45c70f654

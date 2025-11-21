@@ -421,15 +421,15 @@ function c_num!(c, y, data, ddata)
 end;
 
 # ╔═╡ 97c5942c-8eb4-4b5c-8951-87ac0c9f396d
-function c0_num!(c, φ, p, data, ddata)
+function c0_num(y, data, ddata)
     (; i0) = data
 
-    y = u[i0]
-    sumyv = data.v0 * y
+    y0 = y[i0]
+    sumyv = data.v0 * y0
     for α in 1:(data.N)
-        sumyv += u[α] * ddata.v[α]
+        sumyv += y[α] * ddata.v[α]
     end
-    return y / sumyv
+    return y0 / sumyv
 end;
 
 # ╔═╡ 0c54efd0-f279-4dc6-8b00-ba092dd13f44
@@ -446,14 +446,14 @@ function calc_cnum(sol, sys)
     if data.conserveions
         ddata = DerivedData(data, sol[(data.coffset + 1):end, i3])
     else
-        ddata = DerivedData(data.n_E)
+        ddata = DerivedData(data)
     end
-    (; iφ, ip) = data
+    (; iφ, ip, N) = data
     grid = sys.grid
     nnodes = num_nodes(grid)
     conc = zeros(data.N, nnodes)
     for i in 1:nnodes
-        @views c_num!(conc[:, i], sol[iφ, i], sol[ip, i], data, ddata)
+        @views c_num!(conc[:, i], sol[1:(N + 1), i], data, ddata)
     end
     return conc
 end;
@@ -461,18 +461,18 @@ end;
 # ╔═╡ 24910762-7d56-446b-a758-d8e830fe9a09
 function calc_c0num(sol, sys)
     data = sys.physics.data
+    grid = sys.grid
+    i3 = sys.grid[BFaceNodes][3][1]
     if data.conserveions
         ddata = DerivedData(data, sol[(data.coffset + 1):end, i3])
     else
-        ddata = DerivedData(data.n_E)
+        ddata = DerivedData(data)
     end
-    (; iφ, ip) = data
-    grid = sys.grid
+    (; iφ, ip, N) = data
     nnodes = num_nodes(grid)
     c0 = zeros(nnodes)
-    conc = zeros(data.N)
     for i in 1:nnodes
-        @views c0[i] = c0_num!(conc, sol[iφ, i], sol[ip, i], data, ddata)
+        @views c0[i] = c0_num(sol[1:(N + 1), i], data, ddata)
     end
     return c0
 end;
@@ -640,6 +640,7 @@ function ICMPBSystem(
     )
 
     if data.conserveions
+        data.nv = ones(num_nodes(grid)) # trigger sparsity detector
         sys = VoronoiFVM.System(
             grid;
             data = data,

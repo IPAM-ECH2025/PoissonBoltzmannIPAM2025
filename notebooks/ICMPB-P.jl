@@ -115,7 +115,7 @@ dlcap_exact = 0.22846691848825248
 # ╔═╡ 05334798-a072-41ae-b23e-f884baadb071
 begin
     data = ICMPBData(; conserveions=true)
-    set_molarity!(data, 0.01)
+    set_molarity!(data, 0.1)
 end
 
 # ╔═╡ ddb3e60b-8571-465f-acf3-2403fb884363
@@ -142,31 +142,41 @@ inival=unknowns(sys, data)
 
 # ╔═╡ 14ac1c80-cae5-42f1-b0d3-33aa5bba4de6
 begin
-    sol0 = solve(sys; inival, verbose = "n")
+	state=VoronoiFVM.SystemState(sys)
+    sol0 = solve!(state; inival, verbose = "n", damp_initial=0.1)
 end
 
 # ╔═╡ d6f1acbc-d2b0-4d26-b9f6-ad46b9ddfb05
 sol0[:, i3]
 
+# ╔═╡ 1394cfd7-aecc-4559-a460-98082fd43a9c
+state.matrix
+
+# ╔═╡ a4c2f75e-6f20-4e28-8252-90d58fbf1b24
+data.conserveions
+
 # ╔═╡ efb12e12-825b-4dfd-aa10-c6afb304b6bf
 ph"e" / ufac"nm^2"
 
+# ╔═╡ 9108a7e6-176e-481b-8ca6-3c8445051e1c
+data.n_avg/ph"N_A"
+
 # ╔═╡ 6f037b32-e2a8-4693-b46c-952d6b140e8e
 begin
-	data1=apply_charge!(deepcopy(data), 2 * ph"e" / ufac"nm^2")
+	data1=apply_charge!(deepcopy(data), 1 * ph"e" / ufac"nm^2")
 	
     sol1 = solve!(VoronoiFVM.SystemState(sys, data=data1); inival, verbose = "n", damp_initial = 0.1)
 	sol1[:, i3]
 end
 
 # ╔═╡ 1c0145d5-76b1-48c1-8852-de1a2668285a
-molarities = [0.001, 0.01, 0.1, 1]
+molarities = [0.1, 1]
 
 # ╔═╡ f1c33101-00e6-4af9-9e68-6cdf5fe92b59
-qsweep(sys)
+qsweep(sys, verbose="n", qmax=2)
 
 # ╔═╡ a7f2692e-a15f-47b7-8486-8948ce7ab3f7
-result_pp = capscalc(sys, molarities)
+result_pp = capscalc(sys, molarities; qmax=1)
 
 # ╔═╡ e114ec0d-13d3-4455-b1c9-d1c5d76671d9
 md"""
@@ -238,7 +248,10 @@ end
 # ╠═684aa24b-046f-426f-9b99-f0c45c70f654
 # ╠═14ac1c80-cae5-42f1-b0d3-33aa5bba4de6
 # ╠═d6f1acbc-d2b0-4d26-b9f6-ad46b9ddfb05
+# ╠═1394cfd7-aecc-4559-a460-98082fd43a9c
+# ╠═a4c2f75e-6f20-4e28-8252-90d58fbf1b24
 # ╠═efb12e12-825b-4dfd-aa10-c6afb304b6bf
+# ╠═9108a7e6-176e-481b-8ca6-3c8445051e1c
 # ╠═6f037b32-e2a8-4693-b46c-952d6b140e8e
 # ╠═1c0145d5-76b1-48c1-8852-de1a2668285a
 # ╠═f1c33101-00e6-4af9-9e68-6cdf5fe92b59

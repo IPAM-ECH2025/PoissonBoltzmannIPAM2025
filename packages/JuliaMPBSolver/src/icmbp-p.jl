@@ -72,6 +72,9 @@ begin
         "Bulk ion number densities"
         n_E::Vector{Float64} = fill(molarity, N)
 
+        "Average ion number densities"
+        n_avg::Vector{Float64} = fill(molarity, N)
+
         "Surface charges"
         q::Vector{Float64} = [0, 0]
 
@@ -159,7 +162,9 @@ md"""
 function set_molarity!(data::ICMPBData, M_E)
     n_E = M_E * ph"N_A" / ufac"dm^3"
     data.molarity = n_E
-    return data.n_E = fill(n_E, data.N)
+    data.n_E = fill(n_E, data.N)
+    data.n_avg = fill(n_E, data.N)
+    return data
 end
 
 # ╔═╡ a21545da-3b53-47af-b0c4-f253b37dc84f
@@ -405,19 +410,19 @@ Calculate number concentration at discretization node
 """
 
 # ╔═╡ 3ceda3b1-bf1c-4126-b94f-2ee03e8dde99
-function c_num!(c, u, data, ddata)
-    (; i0, iφ, ip) = data
-    y = u[i0]
-    sumyv = data.v0 * y
+function c_num!(c, y, data, ddata)
+    (; i0) = data
+    sumyv = data.v0 * y[i0]
     for α in 1:(data.N)
-        sumyv += u[α] * ddata.v[α]
+        c[α] = y[α]
+        sumyv += y[α] * ddata.v[α]
     end
     return c ./= sumyv
 end;
 
 # ╔═╡ 97c5942c-8eb4-4b5c-8951-87ac0c9f396d
 function c0_num!(c, φ, p, data, ddata)
-    (; i0, iφ, ip) = data
+    (; i0) = data
 
     y = u[i0]
     sumyv = data.v0 * y
@@ -567,7 +572,6 @@ end
 # ╔═╡ 48670f54-d303-4c3a-a191-06e6592a2e0a
 function ysum(sys, sol)
     data = sys.physics.data
-    ddata = DerivedData(data)
     n = size(sol, 2)
     sumy = zeros(n)
     for i in 1:n
@@ -593,36 +597,38 @@ end
 
 # ╔═╡ dbccaa88-65d9-47ab-be78-83df64a6db24
 function ionconservation!(f, u, sys, data)
-    (; coffset, i0, iφ, ip, N, z) = data
+    (; coffset, i0, iφ, ip, N, z, nv, n_avg) = data
     f .= 0
     i3 = sys.grid[BFaceNodes][3][1]
     idx = unknown_indices(unknowns(sys))
     n_E = [u[idx[coffset + i, i3]] * data.cscale for i in 1:N]
     ddata = DerivedData(data, n_E)
-    if data.conserveions
-        for i in 1:num_nodes(sys.grid)
-            f[idx[i0, i]] = u[idx[i0, i]] - y0(u[idx[ip, i]], data, ddata)
-            for α in 1:N
-                f[idx[α, i]] = u[idx[α, i]] - y_α(u[idx[iφ, i]], u[idx[ip, i]], α, data, ddata)
-            end
+    y = zeros(eltype(u), N)
+    for i in 1:num_nodes(sys.grid)
+        f[idx[i0, i]] = u[idx[i0, i]] - y0(u[idx[ip, i]], data, ddata)
+        for α in 1:N
+            f[idx[α, i]] = u[idx[α, i]] - y_α(u[idx[iφ, i]], u[idx[ip, i]], α, data, ddata)
         end
     end
-    #  y = get_tmp(cache, u)
-    #  L = sum(nv)
-    #  for ic in 1:(N - 1)
-    #    f[idx[ic+iϕ, i3]] = 0
-    #  end
-    #  for iv in 1:length(nv)
-    #	cnum!(y,u[idx[iϕ, iv]], u[idx[ip, iv]], data)
-    #  for ic in 1:(N - 1)
-    #   f[idx[ic+iϕ, i3]] += y[ic] * c̄ * nv[iv]
-    #    end
-    #  end
+    really_conserve = true
+    L = sum(nv)
     f[idx[coffset + N, i3]] = u[idx[coffset + N, i3]]
     for ic in 1:(N - 1)
-        # f[idx[ic+iϕ, i3]] = f[idx[ic+iϕ, i3]] - c_avg[ic] * L
-        f[idx[coffset + ic, i3]] = u[idx[coffset + ic, i3]] - data.n_E[ic] / data.cscale
+        if really_conserve
+            f[idx[ic + coffset, i3]] = -n_avg[ic] * L / data.cscale
+        else
+            f[idx[ic + coffset, i3]] = u[idx[ic + coffset, i3]] - data.n_E[ic] / data.cscale
+        end
         f[idx[coffset + N, i3]] += z[ic] * u[idx[coffset + ic, i3]] / z[N]
+    end
+    if really_conserve
+        for iv in 1:length(nv)
+            uu = [u[idx[ic, iv]] for ic in 1:(N + 1)]
+            c_num!(y, uu, data, ddata)
+            for ic in 1:(N - 1)
+                f[idx[ic + coffset, i3]] += y[ic] * nv[iv] / data.cscale
+            end
+        end
     end
     return nothing
 end
@@ -652,6 +658,7 @@ function ICMPBSystem(
             bcondition = bcondition!,
         )
     end
+
     for i in 1:data.N
         enable_species!(sys, i, [1])
     end
@@ -664,7 +671,9 @@ function ICMPBSystem(
         for ic in 1:data.N
             enable_boundary_species!(sys, data.coffset + ic, [3])
         end
+        data.nv = nodevolumes(sys)
     end
+
     return sys
 end;
 
@@ -692,13 +701,13 @@ function qsweep(sys; qmax = 10, nsteps = 100, verbose = "", kwargs...)
 end
 
 # ╔═╡ fc84996b-02c0-4c16-8632-79f4e1900f78
-function capscalc(sys, molarities)
+function capscalc(sys, molarities; kwargs...)
     result = []
     for imol in 1:length(molarities)
         data = sys.physics.data
         set_molarity!(data, molarities[imol])
 
-        t = @elapsed volts, caps = qsweep(sys; qmax = 5, nsteps = 100000)
+        t = @elapsed volts, caps = qsweep(sys; kwargs...)
         cdl0 = dlcap0(data)
         @info "elapsed=$(t)"
         push!(

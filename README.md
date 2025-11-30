@@ -41,12 +41,9 @@ You can then open one of the notebooks or execute one of the scripts.
 ├── LICENSE
 ├── results                      # Subdirectory with calculation results
 ├── notebooks
-│   ├── demo-notebook.jl         # Notebook template
-│   ├── ICMPB.jl                 # Ion conserving MPB draft with different solver variants
-│   ├── ICMPB-provide-csv.jl     # Ion conserving MPB solution with csv output of concentration
-│   ├── pluto-equilibrium.jl     # MPB solver comparing pressure poisson with incompressibility
-│   ├── pluto-simplecell-bsk.jl  # MPB demo (WIP) with Bazant-Storey-Kornyshev model
-│   └── pluto-simplecell.jl      # Poisson-Boltzmann/Bikermann demo
+│   └── ...                      # Various notebooks working with JuliaMPBSolver
+├── draftnotebooks
+│   └── ...                      # Various notebooks working without JuliaMPBSolver
 ├── src
 │   └── PoissonBoltzmannIPAM2025.jl  # Module with shared code for project
 ├── packages
@@ -57,9 +54,14 @@ You can then open one of the notebooks or execute one of the scripts.
 ├── Project.toml                 # Julia dependency description
 ├── README.md
 └── scripts
-    └── demo-script.jl           # Script template
+    └── ...                      # Various scripts
 ```
 
+## Naming nomenclature for notebooks etc:
+- MPB: modified Poisson-Boltzmann
+- IC... : ion conserving ...
+- ...P  : ... with pressure equation
+    
 ## Workflow hints
 For workflow hints, see
 - https://modernjuliaworkflows.org/

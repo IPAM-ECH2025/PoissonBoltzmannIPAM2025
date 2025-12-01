@@ -50,13 +50,20 @@ md"""
 ## Model data
 """
 
-# ╔═╡ 4cabef42-d9f9-43fe-988e-7b54462dc775
+# ╔═╡ 3e042fd0-8693-4e31-b46a-4439ba1ce5af
 md"""
-#### ICMPBData
+#### makeδ(v, χ, T) 
+
+Calculate δ parameter for susceptibility models
 """
 
 # ╔═╡ 55b2ee36-c4f9-4ba3-84ed-faeb556aa026
 makeδ(v, χ, T) = sqrt(v * χ * 3 * ph"ε_0" * ph"k_B" * T)
+
+# ╔═╡ 6e4aaa60-29c5-4f75-a3f1-24e340c25e6c
+md"""
+#### `struct ICMPBData`
+"""
 
 # ╔═╡ 0d825f88-cd67-4368-90b3-29f316b72e6e
 begin
@@ -137,10 +144,11 @@ begin
         "Temperature"
         T::Float64 = 298.15 * ufac"K"
 
+        "Variable susceptibility parameter for solvent"
         δ0 = makeδ(v0, χ0, T)
 
+        "Variable susceptibility parameters"
         δ = [makeδ(κ[i] * v0 + vu[i], χ[i], T) for i in 1:N]
-
 
         "Temperature times Boltzmann constant"
         kT::Float64 = ph"k_B" * T
@@ -159,9 +167,6 @@ begin
 
     end
 end
-
-# ╔═╡ 006ebe22-7bed-45db-acc4-d3e46f5ed7b7
-ICMPBData()
 
 # ╔═╡ 858ed8e1-84b1-4105-8ea0-45209aea40c6
 md"""
@@ -288,7 +293,7 @@ md"""
 ### Mole fractions
 Equilibrium expression for mole fractions (``α≥0``) (16)
 ```math
-y_α(φ,p)=y_α^E\exp\left(\frac{-z_αe}{k_BT}(φ- φ^E)-\frac{v_α}{k_BT}(p-p^E)\right)
+y_α(φ,p)=y_α^E\exp\left(\frac{-z_αe}{k_BT}(φ- φ^E)-\frac{v_α}{k_BT}(p-p^E) +  \Lambda\left(\frac{\delta_\alpha |E|}{k_BT}\right)¸\right)
 ```
 """
 
@@ -616,12 +621,11 @@ This possibility to handle the pressure has been introduced in
 
 Starting with the momentum balance in mechanical equilibrium
 ```math
-	\nabla p - q\nabla \varphi + \frac{ε_0}{2}|E|^2∇χ = 0
+J_p =\nabla p + q\nabla \varphi - \frac{ε_0}{2}|E|^2∇χ=0  \; \text{in}\; \Omega
 ```
 by taking the divergence on both sides of the equation, one derives the pressure Poisson problem
 ```math
 \begin{aligned}
-	J_p &=\nabla p + q\nabla \varphi - \frac{ε_0}{2}|E|^2∇χ  & \text{in}\; \Omega\\
 	\nabla\cdot J_p &=0 & \text{in}\; \Omega\\
       p&=p_{bulk} & \text{on}\; \Gamma_{bulk}\\
 	J_p\cdot \vec n &=0 & \text{on}\; \partial\Omega\setminus\Gamma_{bulk}\\
@@ -641,8 +645,8 @@ md"""
 
 # ╔═╡ 05695820-fa21-49b7-b52f-8a94cf2fa0fa
 md"""
-We use N+2 fields of unknowns in the following sequence:
-``y_1 \dots y_N, y_0, \varphi, p``. Pressures are scaled by `pscale` (default: 1GPa).
+We use N+3 fields of unknowns in the following sequence:
+``y_1 \dots y_N, y_0, \varphi, p, E``. Pressures are scaled by `pscale` (default: 1GPa).
 """
 
 # ╔═╡ b9b0cb4f-cf72-418e-a65e-0f4c8a10e34c
@@ -673,9 +677,9 @@ Runs on every grid edge. Calculate fluxes for the Poisson and the pressure equat
 # ╔═╡ 64e47917-9c61-4d64-a6a1-c6e8c7b28c59
 function poisson_and_p_flux!(f, u, edge, data)
     (; iφ, ip, iE, N) = data
+    nspec = size(u, 1)
     E1 = u[iE, 1]
     E2 = u[iE, 2]
-    nspec = size(u, 1)
     uu = zeros(eltype(u), nspec)
     for i in 1:nspec
         uu[i] = u[i, 1]
@@ -935,10 +939,10 @@ end
 # ╠═920b7d84-56c6-4958-aed9-fc67ba0c43f6
 # ╟─87ac16f4-a4fc-4205-8fb9-e5459517e1b8
 # ╟─7d77ad32-3df6-4243-8bad-b8df4126e6ea
-# ╟─4cabef42-d9f9-43fe-988e-7b54462dc775
+# ╟─3e042fd0-8693-4e31-b46a-4439ba1ce5af
 # ╠═55b2ee36-c4f9-4ba3-84ed-faeb556aa026
+# ╟─6e4aaa60-29c5-4f75-a3f1-24e340c25e6c
 # ╠═0d825f88-cd67-4368-90b3-29f316b72e6e
-# ╠═006ebe22-7bed-45db-acc4-d3e46f5ed7b7
 # ╟─858ed8e1-84b1-4105-8ea0-45209aea40c6
 # ╠═4929c105-4c01-4c83-ad2f-2056a8c51d29
 # ╟─f3049938-2637-401d-9411-4d7be07c19ca
@@ -985,7 +989,7 @@ end
 # ╟─02d69f1c-4525-4f69-9938-cb0495171c3a
 # ╠═48670f54-d303-4c3a-a191-06e6592a2e0a
 # ╟─7a607454-7b75-4313-920a-2dbdad258015
-# ╠═9cb8324c-896f-40f8-baa8-b7d47a93e9f5
+# ╟─9cb8324c-896f-40f8-baa8-b7d47a93e9f5
 # ╟─003a5c0b-17c7-4407-ad23-21c0ac000fd4
 # ╟─dc04ffc5-c96d-48c2-b89a-9094c57f1623
 # ╟─05695820-fa21-49b7-b52f-8a94cf2fa0fa

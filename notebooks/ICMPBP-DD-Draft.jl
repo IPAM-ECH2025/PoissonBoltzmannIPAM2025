@@ -29,7 +29,7 @@ begin
     using Test
     using PythonPlot
     using Colors
-    using JuliaMPBSolver.ICMPBP: ICMPBData, ICMPBSystem, L_Debye, set_molarity!, dlcap0, DerivedData, apply_charge!, ysum, qsweep, capscalc, calc_cmol, calc_c0mol,  calc_χ
+    using JuliaMPBSolver.ICMPBP: ICMPBData, ICMPBSystem, L_Debye, set_molarity!, dlcap0, DerivedData, apply_charge!, ysum, qsweep, capscalc, calc_cmol, calc_c0mol, calc_χ
 end
 
 # ╔═╡ ef660f6f-9de3-4896-a65e-13c60df5de1e
@@ -291,7 +291,7 @@ function plotsol(
     ax1 = ax[0]
     ax2 = ax[1]
     ax3 = ax[2]
-	
+
     ax1.grid()
     i3 = sys.grid[BFaceNodes][3][1]
     ax1r = ax1.twinx()
@@ -328,10 +328,10 @@ function plotsol(
     ax2.legend(loc = (0.4, 0.1))
 
 
-	ax3.grid()
-	ax3.plot(X/nm, sol[data.iE,:], color="pink", label="E")
-	ax3r = ax3.twinx()
-	ax3r.plot(X/nm, calc_χ(sol,sys), color="orange", label="χ")
+    ax3.grid()
+    ax3.plot(X / nm, sol[data.iE, :], color = "pink", label = "E")
+    ax3r = ax3.twinx()
+    ax3r.plot(X / nm, calc_χ(sol, sys), color = "orange", label = "χ")
     ax3.legend(loc = (0.1, 0.1))
     ax3r.legend(loc = (0.8, 0.1))
     tight_layout()
@@ -347,7 +347,7 @@ begin
     )
     set_molarity!(data1, M1_avg)
     data1.conserveions = true
-	data1.χvar=true
+    data1.χvar = false
 end
 
 # ╔═╡ 8433319f-2f78-494c-9b2e-a5390cf93b00

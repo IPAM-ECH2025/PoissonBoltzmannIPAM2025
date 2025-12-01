@@ -348,7 +348,7 @@ sys1 = ICMPBSystem(grid, data1);
 inival1 = unknowns(sys1, data1);
 
 # ╔═╡ d2df6ed0-e6f5-4677-b790-bfc40de7fd6a
-sol1 = solve(sys1; inival = inival1, damp_initial = 0.1, verbose = "n", log=true)
+sol1 = solve(sys1; inival = inival1, damp_initial = 0.1, verbose = "n", log = true)
 
 # ╔═╡ 5f153fe4-4476-401e-8674-b6902213c19e
 md"""

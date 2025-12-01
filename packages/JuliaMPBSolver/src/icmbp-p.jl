@@ -55,6 +55,9 @@ md"""
 #### ICMPBData
 """
 
+# ╔═╡ 55b2ee36-c4f9-4ba3-84ed-faeb556aa026
+makeδ(v, χ, T) = sqrt(v * χ * 3 * ph"ε_0" * ph"k_B" * T)
+
 # ╔═╡ 0d825f88-cd67-4368-90b3-29f316b72e6e
 begin
     """
@@ -96,7 +99,11 @@ begin
         vu::Vector{Float64} = fill(1 / n0_ref, N)
 
         "Dielectric susceptibility"
-        χ::Float64 = 78.49 - 1
+        χ0::Float64 = 78.49 - 1
+
+        "Dielectric susceptibility"
+        χ = fill(0.0, N)
+
 
         "Solvent molar fraction index"
         i0::Int = N + 1
@@ -107,8 +114,11 @@ begin
         "Pressure species index"
         ip::Int = iφ + 1
 
+        "Field strength species index"
+        iE::Int = ip + 1
+
         "Offset of n_E in species list"
-        coffset::Int = ip
+        coffset::Int = iE
 
         "Reference pressure"
         p_ref::Float64 = 1.0e5 * ufac"Pa"
@@ -124,6 +134,11 @@ begin
 
         "Temperature"
         T::Float64 = 298.15 * ufac"K"
+
+        δ0 = makeδ(v0, χ0, T)
+
+        δ = [makeδ(κ[i] * v0 + vu[i], χ[i], T) for i in 1:N]
+
 
         "Temperature times Boltzmann constant"
         kT::Float64 = ph"k_B" * T
@@ -143,9 +158,12 @@ begin
     end
 end
 
+# ╔═╡ 006ebe22-7bed-45db-acc4-d3e46f5ed7b7
+ICMPBData()
+
 # ╔═╡ 858ed8e1-84b1-4105-8ea0-45209aea40c6
 md"""
-#### `applay_charge!(data,q)`
+#### `apply_charge!(data,q)`
 """
 
 # ╔═╡ 4929c105-4c01-4c83-ad2f-2056a8c51d29
@@ -227,6 +245,32 @@ Check with Bard/Faulkner: the value must be $(22.8)μF/cm^2")
 md"""
 ## Model equations
 """
+
+# ╔═╡ 84ed772f-f04a-4746-a864-3c9c6cc8bb67
+function W(x)
+    # W(x) = (coth(x) - 1/x) / x
+    if abs(x) < 0.5
+        u = x * x
+        # Horner scheme with 4 terms thx 深度求索
+        result = -1.0 / 4725.0    # u^3 coefficient
+        result = 2.0 / 945.0 + u * result
+        result = -1.0 / 45.0 + u * result
+        result = 1.0 / 3.0 + u * result
+        return 3 * result
+    else
+        return 3 * ((coth(x) - 1.0 / x) / x)
+    end
+end
+
+# ╔═╡ 7ca19f45-b95e-4e21-a5aa-d4140669b3b8
+function Λ(x) # thx 深度求索
+    if abs(x) < 0.1
+        u = x * x
+        return log(1.0 + u * (1.0 / 6.0 + u * (1.0 / 120.0 + u * (1.0 / 5040.0 + u * (1.0 / 362880.0)))))
+    else
+        return log(sinh(x) / x)
+    end
+end
 
 # ╔═╡ a26cf11b-0ce1-4c1d-a64d-1917178ff676
 md"""
@@ -321,6 +365,20 @@ function spacecharge(u, data)
         sumyv += v * y
     end
     return data.e * sumyz / sumyv
+end
+
+# ╔═╡ bf7f8bab-4807-440b-8796-fcf75ad313d7
+function susceptibility(u, data)
+    (; iE, i0) = data
+    y = u[i0]
+    χ = data.v0 * u[i0] * data.χ0*W(data.δ0 * u[iE] / data.kT)
+    sumyv = data.v0 * y
+    for α in 1:(data.N)
+        v = data.vu[α] + data.κ[α] * data.v0
+        χ += v * u[α] * data.χ[α]*W(data.δ[α] * u[iE] / data.kT)
+        sumyv += v * u[α]
+    end
+    return χ / sumyv
 end
 
 # ╔═╡ b41838bb-3d5b-499c-9eb5-137c252ae366
@@ -490,6 +548,19 @@ function calc_c0num(sol, sys)
     return c0
 end;
 
+# ╔═╡ 3b7a90cd-8f58-4abc-805a-2891ad6ceb9a
+function calc_χ(sol, sys)
+    data = sys.physics.data
+    grid = sys.grid
+    nnodes = num_nodes(grid)
+    χ = zeros(nnodes)
+
+    for i in 1:nnodes
+        @views χ[i] = susceptibility(sol[:, i], data)
+    end
+    return χ
+end
+
 # ╔═╡ 9fe3ca93-c051-426e-8b9a-cc59f59319ad
 md"""
 #### calc_cmol(sol,sys)
@@ -575,13 +646,6 @@ function reaction!(f, u, node, data)
     φ = u[iφ]
     p = u[ip]
     f[iφ] = -spacecharge(u, data)
-    if !data.conserveions
-        ddata = DerivedData(data)
-        f[i0] = u[i0] - y0(p, data, ddata)
-        for α in 1:N
-            f[α] = u[α] - y_α(φ, p, α, data, ddata)
-        end
-    end
     return
 end;
 
@@ -595,7 +659,7 @@ Runs on every grid edge. Calculate fluxes for the Poisson and the pressure equat
 # ╔═╡ 64e47917-9c61-4d64-a6a1-c6e8c7b28c59
 function poisson_and_p_flux!(f, u, edge, data)
     (; iφ, ip, N) = data
-    f[iφ] = (1.0 + data.χ) * data.ε_0 * (u[iφ, 1] - u[iφ, 2])
+    f[iφ] = (1.0 + data.χ0) * data.ε_0 * (u[iφ, 1] - u[iφ, 2])
     uu = zeros(eltype(u), N + 3)
     for i in 1:(N + 3)
         uu[i] = u[i, 1]
@@ -648,7 +712,7 @@ Initialize and return unknown vector.
 
 # ╔═╡ b0a45e53-8b98-4e18-8b41-7f6d0bc1f76e
 function VoronoiFVM.unknowns(sys, data::ICMPBData)
-    (; i0, iφ, ip, coffset, N) = data
+    (; i0, iφ, ip, iE, coffset, N) = data
     u = unknowns(sys, inival = 0)
     i3 = sys.grid[BFaceNodes][3][1]
     for α in 1:N
@@ -663,21 +727,25 @@ end
 
 # ╔═╡ dbccaa88-65d9-47ab-be78-83df64a6db24
 function ionconservation!(f, u, sys, data)
-    (; coffset, i0, iφ, ip, N, z, nv, n_avg) = data
+    (; coffset, i0, iφ, iE, ip, N, z, nv, n_avg) = data
     # Set the result to zero
     f .= 0
     # Find  mid-of-the-domain node number from boundary region 3
     i3 = sys.grid[BFaceNodes][3][1]
+    X = sys.grid[Coordinates][1, :]
 
     # Parameters u and f come as vectors, `idx` allows to access their contents with
     # two-dimensional indexing. This might be changed in a later Version of VoronoiFVM.
     idx = unknown_indices(unknowns(sys))
 
     # Obtain values of the bulk molecular densities
-    n_E = [u[idx[coffset + i, i3]] * data.cscale for i in 1:N]
-
-    # Calculate derived data
-    ddata = DerivedData(data, n_E)
+    if data.conserveions
+        n_E = [u[idx[coffset + i, i3]] * data.cscale for i in 1:N]
+        # Calculate derived data
+        ddata = DerivedData(data, n_E)
+    else
+        ddata = DerivedData(data)
+    end
 
     # Calculate molar fractions for all nodes of the grid
     for i in 1:num_nodes(sys.grid)
@@ -685,32 +753,41 @@ function ionconservation!(f, u, sys, data)
         for α in 1:N
             f[idx[α, i]] = u[idx[α, i]] - y_α(u[idx[iφ, i]], u[idx[ip, i]], α, data, ddata)
         end
-    end
-
-    # Get size of the domain
-    L = sum(nv)
-    # Initialize electroneutrality constraint for n^E_N
-    f[idx[coffset + N, i3]] = u[idx[coffset + N, i3]]
-    for α in 1:(N - 1)
-        # Initialize ion conservation constrain for n_α
-        f[idx[coffset + α, i3]] = -n_avg[α] * L / data.cscale
-
-        # Update electroneutrality constraint for n^E_N
-        f[idx[coffset + N, i3]] += z[α] * u[idx[coffset + α, i3]] / z[N]
-    end
-
-    y = zeros(eltype(u), N + 1)
-    uu = zeros(eltype(u), N + 1)
-    # Calculate number density integrals
-    for iv in 1:length(nv)
-        for α in 1:(N + 1)
-            uu[α] = u[idx[α, iv]]
+        if i == 1
+            f[idx[iE, i]] = u[idx[iE, i]] - abs((u[idx[iφ, i + 1]] - u[idx[iφ, i]]) / (X[i + 1] - X[i]))
+        elseif i == num_nodes(sys.grid)
+            f[idx[iE, i]] = u[idx[iE, i]] - abs((u[idx[iφ, i - 1]] - u[idx[iφ, i]]) / (X[i - 1] - X[i]))
+        else
+            f[idx[iE, i]] = u[idx[iE, i]] - abs((u[idx[iφ, i + 1]] - u[idx[iφ, i - 1]]) / (X[i + 1] - X[i - 1]))
         end
-        c_num!(y, uu, data, ddata)
+    end
 
+    if data.conserveions
+        # Get size of the domain
+        L = sum(nv)
+        # Initialize electroneutrality constraint for n^E_N
+        f[idx[coffset + N, i3]] = u[idx[coffset + N, i3]]
         for α in 1:(N - 1)
-            # Update ion conservation constraint for n_α
-            f[idx[coffset + α, i3]] += y[α] * nv[iv] / data.cscale
+            # Initialize ion conservation constrain for n_α
+            f[idx[coffset + α, i3]] = -n_avg[α] * L / data.cscale
+
+            # Update electroneutrality constraint for n^E_N
+            f[idx[coffset + N, i3]] += z[α] * u[idx[coffset + α, i3]] / z[N]
+        end
+
+        y = zeros(eltype(u), N + 1)
+        uu = zeros(eltype(u), N + 1)
+        # Calculate number density integrals
+        for iv in 1:length(nv)
+            for α in 1:(N + 1)
+                uu[α] = u[idx[α, iv]]
+            end
+            c_num!(y, uu, data, ddata)
+
+            for α in 1:(N - 1)
+                # Update ion conservation constraint for n_α
+                f[idx[coffset + α, i3]] += y[α] * nv[iv] / data.cscale
+            end
         end
     end
     return nothing
@@ -719,26 +796,16 @@ end
 # ╔═╡ 7bf3a130-3b47-428e-916f-4a0ec1237844
 function ICMPBSystem(grid, data)
 
-    if data.conserveions
-        data.nv = ones(num_nodes(grid)) # trigger sparsity detector
-        sys = VoronoiFVM.System(
-            grid;
-            data = data,
-            flux = poisson_and_p_flux!,
-            reaction = reaction!,
-            bcondition = bcondition!,
-            generic = ionconservation!,
-            unknown_storage = :sparse
-        )
-    else
-        sys = VoronoiFVM.System(
-            grid;
-            data = data,
-            flux = poisson_and_p_flux!,
-            reaction = reaction!,
-            bcondition = bcondition!,
-        )
-    end
+    data.nv = ones(num_nodes(grid)) # trigger sparsity detector
+    sys = VoronoiFVM.System(
+        grid;
+        data = data,
+        flux = poisson_and_p_flux!,
+        reaction = reaction!,
+        bcondition = bcondition!,
+        generic = ionconservation!,
+        unknown_storage = :sparse
+    )
 
     # Enable species for all fields
     for i in 1:data.N
@@ -748,6 +815,7 @@ function ICMPBSystem(grid, data)
     enable_species!(sys, data.i0, [1])
     enable_species!(sys, data.iφ, [1])
     enable_species!(sys, data.ip, [1])
+    enable_species!(sys, data.iE, [1])
 
     # Enable species in mid of the domain for ion conservation and
     # electroneutrality constraint
@@ -840,7 +908,9 @@ end
 # ╟─87ac16f4-a4fc-4205-8fb9-e5459517e1b8
 # ╟─7d77ad32-3df6-4243-8bad-b8df4126e6ea
 # ╟─4cabef42-d9f9-43fe-988e-7b54462dc775
+# ╠═55b2ee36-c4f9-4ba3-84ed-faeb556aa026
 # ╠═0d825f88-cd67-4368-90b3-29f316b72e6e
+# ╠═006ebe22-7bed-45db-acc4-d3e46f5ed7b7
 # ╟─858ed8e1-84b1-4105-8ea0-45209aea40c6
 # ╠═4929c105-4c01-4c83-ad2f-2056a8c51d29
 # ╟─f3049938-2637-401d-9411-4d7be07c19ca
@@ -853,6 +923,8 @@ end
 # ╠═fe704fb4-d07c-4591-b834-d6cf2f4f7075
 # ╟─5a210961-19fc-40be-a5f6-033a80f1414d
 # ╟─5eca37ba-f858-45fb-a66a-3795327dfd18
+# ╠═84ed772f-f04a-4746-a864-3c9c6cc8bb67
+# ╠═7ca19f45-b95e-4e21-a5aa-d4140669b3b8
 # ╟─a26cf11b-0ce1-4c1d-a64d-1917178ff676
 # ╟─cdd1d359-08fa-45a1-a857-e19f2adefcab
 # ╠═188f67d8-2ae8-474c-8e58-68b8b4fde02e
@@ -864,6 +936,7 @@ end
 # ╟─b1e062c6-f245-4edc-aa02-871e2c776998
 # ╟─c4cc940c-74aa-45f8-a2fa-6016d7c3c145
 # ╠═b07246b8-aec5-4161-8879-8cefb350aced
+# ╠═bf7f8bab-4807-440b-8796-fcf75ad313d7
 # ╟─b41838bb-3d5b-499c-9eb5-137c252ae366
 # ╠═a468f43a-aa20-45dc-9c21-77f5adf2d700
 # ╟─13fc2859-496e-4f6e-8b22-36d9d55768b8
@@ -875,6 +948,7 @@ end
 # ╟─0c54efd0-f279-4dc6-8b00-ba092dd13f44
 # ╠═800dfed8-9f29-4138-96f8-e8bf1f2f00e6
 # ╠═24910762-7d56-446b-a758-d8e830fe9a09
+# ╠═3b7a90cd-8f58-4abc-805a-2891ad6ceb9a
 # ╟─9fe3ca93-c051-426e-8b9a-cc59f59319ad
 # ╠═2ee34d76-7238-46c2-94d1-a40d8b017af6
 # ╠═79cc671b-ef6e-42da-8641-61e43f221cb1

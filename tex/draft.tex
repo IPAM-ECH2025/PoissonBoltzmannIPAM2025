@@ -43,18 +43,18 @@ Let $\Omega = (0,L)$.
 
 \begin{equation}\label{eq:Poisson}
   \begin{aligned}
-    -\nabla \varepsilon \nabla \phi & = \rho(\phi,p) \; \text{in} \Omega \\
+    -\nabla\cdot( \varepsilon_0(1+\chi) \nabla \phi) & = q(\phi,p) \; \text{in} \Omega \\
   \end{aligned}
 \end{equation}
 
 We set two variants of boundary conditions:
 \begin{itemize}
-  \item symmetric cell with ideally polarizable electroded and fixed charges:
+  \item symmetric cell with ideally polarizable electrode and fixed charges:
         \begin{equation}
           \label{eq:symmcell}
           \begin{aligned}
-            \varepsilon\nabla\phi \cdot \vec n |_{x=0} & = q  \\
-            \varepsilon\nabla\phi \cdot \vec n |_{x=L} & = -q
+            \varepsilon_0(1+\chi)\nabla\phi \cdot \vec n |_{x=0} & = q_s  \\
+            \varepsilon_0(1+\chi)\nabla\phi \cdot \vec n |_{x=L} & = -q_s
           \end{aligned}
         \end{equation}
 
@@ -62,22 +62,50 @@ We set two variants of boundary conditions:
         \begin{equation}
           \label{eq:halfcell}
           \begin{aligned}
-            \varepsilon\nabla\phi \cdot \vec n |_{x=0} & = U      \\
-            \varepsilon\nabla\phi \cdot \vec n |_{x=L} & = \phi^E
+            \phi|_{x=0} & = U      \\
+            \phi|_{x=L} & = \phi^E
           \end{aligned}
         \end{equation}
 \end{itemize}
 
-
 Let $\alpha=0\dots N$ be the species index, with the assumption that $\alpha=0$ denotes
 the electroneutral solvent.
+
+Let $\Lambda(x) = \ln \frac{\sinh(x)}{x}$ be the antiderivative of the
+Langevin function $\mathcal L (x)=\coth(x)-\frac1x$.
+
+We set the polarization free energy contribution as
+$$
+  \rho\psi^{Pol} = -k_BT\sum_{\alpha} n_\alpha\Lambda(\delta_\alpha |E|)
+$$
+where $E=\nabla \phi$ is the electric field.
+
+Let $\mathcal W(x)= 3\frac{\mathcal L(x)}{x}$.
+
+Then, for
+$$
+  \chi = \sum_\alpha v_\alpha n_\alpha \chi_\alpha^0\mathcal W\left(\frac{\delta_\alpha |E|}{k_BT}\right)
+$$
+and
+$$
+  \delta_\alpha= \sqrt{3v_\alpha\chi^0_\alpha\varepsilon_0k_BT}
+$$
+the polarization can be expressed as
+$$
+  P(E)= -\frac{\partial \rho\psi^{pol}}{\partial E}= \varepsilon_0 \chi E
+$$
+
 Then we have for the mole fractions
 \begin{align}\label{eq:y}
-  y_\alpha(\phi,p)= y_\alpha^E\exp\left( - \frac{z_\alpha e (\phi-\phi^E) + v_\alpha(p-p^E)}{k_BT}\right)
+  y_\alpha(\phi,p)= y_\alpha^E\exp\left(
+  - \frac{z_\alpha e (\phi-\phi^E)
+      + v_\alpha(p-p^E)}{k_BT}
+  + \Lambda\left(\frac{\delta_\alpha |E|}{k_BT}\right)
+  \right).
 \end{align}
-and can calculate the space charge density as
+We can calculate the space charge density as
 \begin{align}\label{eq:rho}
-  \rho(\phi,p) = e\sum_{\alpha=1}^n z_\alpha n_\alpha = e\sum_{\alpha=1}^N z_\alpha \frac{y_\alpha}{\sum_{\alpha=0}^N v_\alpha y_\alpha}.
+  q(\phi,p) = e\sum_{\alpha=1}^n z_\alpha n_\alpha = e\sum_{\alpha=1}^N z_\alpha \frac{y_\alpha}{\sum_{\alpha=0}^N v_\alpha y_\alpha}.
 \end{align}
 \medskip
 
@@ -125,7 +153,7 @@ There are two ways to solve for the pressure.
 First, one can use the momentum balance in mechanical equilibrium
 \begin{align}
   \label{eq:momentumbalance}
-  \nabla p = -q\nabla \phi
+  \nabla p = q\nabla \phi - \frac{\varepsilon_0}{2} |E|^2\nabla \chi
 \end{align}
 
 for the pressure derived as part of the generalized Nernst-Planck-Poisson
@@ -186,11 +214,11 @@ Numerical examples show that both approaches give the same results.
 
 \subsection{Half cell problem}
 This is the classical problem leading to the calculation of double layer capacitances.
-From the space charge density $\rho(\phi, p)$ for given solution with applied potential $U$,
+From the space charge density $q(\phi, p)$ for given solution with applied potential $U$,
 one calculates the double layer charge
 \begin{align}
   \label{eq:spacecharge}
-  Q_{dl}=Q_{dl}(U)=\int_\Omega \rho\; d\omega.
+  Q_{dl}=Q_{dl}(U)=\int_\Omega q\; d\omega.
 \end{align}
 (This formula takes into account that there is no boundary layer in the system). Repeated calculations
 for different applied potentials $U$ allow to estimate the space charge capacitance
@@ -207,7 +235,7 @@ However, we can hypothesize some of its properties:
   \item As we apply opposite charges at the interfaces, global electroneutrality  enforces
         \begin{align}
           \label{eq:globneutral}
-          \int_\Omega \rho\; d\omega  =0
+          \int_\Omega q\; d\omega  =0
         \end{align}
   \item For this problem, we can define $U=\phi(0)-\phi(L)$, and we can calculate the values
         $U(q)$. Does inversion of this relationship provide similar double layer capacitance curves ?

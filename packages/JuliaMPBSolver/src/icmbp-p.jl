@@ -98,12 +98,14 @@ begin
         "Unsolvated ion molecular volume"
         vu::Vector{Float64} = fill(1 / n0_ref, N)
 
-        "Dielectric susceptibility"
+        "Dielectric susceptibility of solvent"
         χ0::Float64 = 78.49 - 1
 
         "Dielectric susceptibility"
         χ = fill(0.0, N)
 
+        "Dielectric susceptibility model flag"
+        χvar::Bool = false
 
         "Solvent molar fraction index"
         i0::Int = N + 1
@@ -220,7 +222,7 @@ C_{dl,0}=\sqrt{\frac{2(1+χ) ε_0e^2 n_E}{k_BT}}
 # ╔═╡ 1d22b09e-99c1-4026-9505-07bdffc98582
 function dlcap0(data::ICMPBData)
     return sqrt(
-        2 * (1 + data.χ) * ph"ε_0" * ph"e"^2 * data.n_E[1] / (ph"k_B" * data.T),
+        2 * (1 + data.χ0) * ph"ε_0" * ph"e"^2 * data.n_E[1] / (ph"k_B" * data.T),
     )
 end;
 
@@ -246,30 +248,39 @@ md"""
 ## Model equations
 """
 
+# ╔═╡ 1a6448fa-65e0-4aac-a5b7-7eb34a4a536f
+md"""
+#### ``W(x)= 3\frac{\mathcal L(x)}{x}= \frac{\coth(x)-\frac1x}{x}`` 
+
+``\mathcal L(x)`` is called Langevin function.
+"""
+
 # ╔═╡ 84ed772f-f04a-4746-a864-3c9c6cc8bb67
 function W(x)
-    # W(x) = (coth(x) - 1/x) / x
-    if abs(x) < 0.5
-        u = x * x
-        # Horner scheme with 4 terms thx 深度求索
-        result = -1.0 / 4725.0    # u^3 coefficient
-        result = 2.0 / 945.0 + u * result
-        result = -1.0 / 45.0 + u * result
-        result = 1.0 / 3.0 + u * result
-        return 3 * result
-    else
-        return 3 * ((coth(x) - 1.0 / x) / x)
-    end
+    u = x * x
+    # Horner scheme with 4 terms thx 深度求索
+    result = -1.0 / 4725.0    # u^3 coefficient
+    result = 2.0 / 945.0 + u * result
+    result = -1.0 / 45.0 + u * result
+    result = 1.0 / 3.0 + u * result
+    ysmall = 3 * result
+    ylarge = 3 * ((coth(x) - 1.0 / x) / x)
+    return ifelse(abs(x) < 0.5, ysmall, ylarge)
 end
+
+# ╔═╡ 9aa654e2-4cd9-4b31-af84-8060729cd3a3
+md"""
+#### ``\Lambda(x)=\ln\left( \frac{\sinh(x)}x  \right)``
+
+This is the antiderivative of the Langevin function ``\mathcal L(x)``.
+"""
 
 # ╔═╡ 7ca19f45-b95e-4e21-a5aa-d4140669b3b8
 function Λ(x) # thx 深度求索
-    if abs(x) < 0.1
-        u = x * x
-        return log(1.0 + u * (1.0 / 6.0 + u * (1.0 / 120.0 + u * (1.0 / 5040.0 + u * (1.0 / 362880.0)))))
-    else
-        return log(sinh(x) / x)
-    end
+    u = x * x
+    ysmall = log(1.0 + u * (1.0 / 6.0 + u * (1.0 / 120.0 + u * (1.0 / 5040.0 + u * (1.0 / 362880.0)))))
+    ylarge = log(sinh(x) / x)
+    return ifelse(abs(x) < 0.5, ysmall, ylarge)
 end
 
 # ╔═╡ a26cf11b-0ce1-4c1d-a64d-1917178ff676
@@ -289,10 +300,10 @@ Ion molar fractions
 """
 
 # ╔═╡ 188f67d8-2ae8-474c-8e58-68b8b4fde02e
-function y_α(φ, p, α, data, ddata)
+function y_α(φ, p, E, α, data, ddata)
     η_φ = data.z[α] * data.e * (φ - data.E_ref)
     η_p = ddata.v[α] * (p * data.pscale - data.p_ref)
-    return ddata.y_E[α] * exp(-(η_φ + η_p) / (data.kT))
+    return ddata.y_E[α] * exp(-(η_φ + η_p) / (data.kT) + data.χvar * Λ(data.δ[α] * E / data.kT))
 end;
 
 # ╔═╡ f70eed13-a6c2-4d54-9f30-113367afaf7d
@@ -303,8 +314,8 @@ Solvent molar fraction
 """
 
 # ╔═╡ d7531d5f-fc2d-42b2-9cf9-6a737b0f0f8d
-function y0(p, data, ddata)
-    return ddata.y0_E * exp(-data.v0 * (p * data.pscale - data.p_ref) / (data.kT))
+function y0(p, E, data, ddata)
+    return ddata.y0_E * exp(-data.v0 * (p * data.pscale - data.p_ref) / (data.kT) + data.χvar * Λ(data.δ0 * E / data.kT))
 end;
 
 # ╔═╡ f6f004a6-d71b-4813-a363-9f51dc37e42a
@@ -371,11 +382,11 @@ end
 function susceptibility(u, data)
     (; iE, i0) = data
     y = u[i0]
-    χ = data.v0 * u[i0] * data.χ0*W(data.δ0 * u[iE] / data.kT)
+    χ = data.v0 * u[i0] * data.χ0 * W(data.δ0 * u[iE] / data.kT)
     sumyv = data.v0 * y
     for α in 1:(data.N)
         v = data.vu[α] + data.κ[α] * data.v0
-        χ += v * u[α] * data.χ[α]*W(data.δ[α] * u[iE] / data.kT)
+        χ += v * u[α] * data.χ[α] * W(data.δ[α] * u[iE] / data.kT)
         sumyv += v * u[α]
     end
     return χ / sumyv
@@ -553,10 +564,12 @@ function calc_χ(sol, sys)
     data = sys.physics.data
     grid = sys.grid
     nnodes = num_nodes(grid)
-    χ = zeros(nnodes)
+    χ = fill(data.χ0, nnodes)
 
-    for i in 1:nnodes
-        @views χ[i] = susceptibility(sol[:, i], data)
+    if data.χvar
+        for i in 1:nnodes
+            @views χ[i] = susceptibility(sol[:, i], data)
+        end
     end
     return χ
 end
@@ -603,14 +616,15 @@ This possibility to handle the pressure has been introduced in
 
 Starting with the momentum balance in mechanical equilibrium
 ```math
-	\nabla p = -q\nabla \varphi
+	\nabla p - q\nabla \varphi + \frac{ε_0}{2}|E|^2∇χ = 0
 ```
 by taking the divergence on both sides of the equation, one derives the pressure Poisson problem
 ```math
 \begin{aligned}
-	-\Delta p &= \nabla\cdot q\nabla \varphi & \text{in}\; \Omega\\
+	J_p &=\nabla p + q\nabla \varphi - \frac{ε_0}{2}|E|^2∇χ  & \text{in}\; \Omega\\
+	\nabla\cdot J_p &=0 & \text{in}\; \Omega\\
       p&=p_{bulk} & \text{on}\; \Gamma_{bulk}\\
-	(\nabla p + q\nabla \varphi)\cdot \vec n &=0 & \text{on}\; \partial\Omega\setminus\Gamma_{bulk}\\
+	J_p\cdot \vec n &=0 & \text{on}\; \partial\Omega\setminus\Gamma_{bulk}\\
 \end{aligned}
 ```
 """
@@ -658,19 +672,33 @@ Runs on every grid edge. Calculate fluxes for the Poisson and the pressure equat
 
 # ╔═╡ 64e47917-9c61-4d64-a6a1-c6e8c7b28c59
 function poisson_and_p_flux!(f, u, edge, data)
-    (; iφ, ip, N) = data
-    f[iφ] = (1.0 + data.χ0) * data.ε_0 * (u[iφ, 1] - u[iφ, 2])
-    uu = zeros(eltype(u), N + 3)
-    for i in 1:(N + 3)
+    (; iφ, ip, iE, N) = data
+    E1 = u[iE, 1]
+    E2 = u[iE, 2]
+    nspec = size(u, 1)
+    uu = zeros(eltype(u), nspec)
+    for i in 1:nspec
         uu[i] = u[i, 1]
     end
+    χ1 = susceptibility(uu, data)
     q1 = spacecharge(uu, data)
-    for i in 1:(N + 3)
+    for i in 1:nspec
         uu[i] = u[i, 2]
     end
+    χ2 = susceptibility(uu, data)
     q2 = spacecharge(uu, data)
+
+    if data.χvar
+        χ = (χ1 + χ2) / 2
+    else
+        χ = data.χ0
+    end
+    χ = data.χ0
+
+    f[iφ] = (1.0 + χ) * data.ε_0 * (u[iφ, 1] - u[iφ, 2])
     f[ip] =
         (u[ip, 1] - u[ip, 2]) + (u[iφ, 1] - u[iφ, 2]) * (q1 + q2) / (2 * data.pscale)
+    - data.χvar * (data.ε_0 / 2) * ((E1 + E2) / 2)^2 * (χ1 - χ2)
     return
 end;
 
@@ -749,9 +777,9 @@ function ionconservation!(f, u, sys, data)
 
     # Calculate molar fractions for all nodes of the grid
     for i in 1:num_nodes(sys.grid)
-        f[idx[i0, i]] = u[idx[i0, i]] - y0(u[idx[ip, i]], data, ddata)
+        f[idx[i0, i]] = u[idx[i0, i]] - y0(u[idx[ip, i]], u[idx[iE, i]], data, ddata)
         for α in 1:N
-            f[idx[α, i]] = u[idx[α, i]] - y_α(u[idx[iφ, i]], u[idx[ip, i]], α, data, ddata)
+            f[idx[α, i]] = u[idx[α, i]] - y_α(u[idx[iφ, i]], u[idx[ip, i]], u[idx[iE, i]], α, data, ddata)
         end
         if i == 1
             f[idx[iE, i]] = u[idx[iE, i]] - abs((u[idx[iφ, i + 1]] - u[idx[iφ, i]]) / (X[i + 1] - X[i]))
@@ -923,7 +951,9 @@ end
 # ╠═fe704fb4-d07c-4591-b834-d6cf2f4f7075
 # ╟─5a210961-19fc-40be-a5f6-033a80f1414d
 # ╟─5eca37ba-f858-45fb-a66a-3795327dfd18
+# ╟─1a6448fa-65e0-4aac-a5b7-7eb34a4a536f
 # ╠═84ed772f-f04a-4746-a864-3c9c6cc8bb67
+# ╟─9aa654e2-4cd9-4b31-af84-8060729cd3a3
 # ╠═7ca19f45-b95e-4e21-a5aa-d4140669b3b8
 # ╟─a26cf11b-0ce1-4c1d-a64d-1917178ff676
 # ╟─cdd1d359-08fa-45a1-a857-e19f2adefcab
@@ -955,7 +985,7 @@ end
 # ╟─02d69f1c-4525-4f69-9938-cb0495171c3a
 # ╠═48670f54-d303-4c3a-a191-06e6592a2e0a
 # ╟─7a607454-7b75-4313-920a-2dbdad258015
-# ╟─9cb8324c-896f-40f8-baa8-b7d47a93e9f5
+# ╠═9cb8324c-896f-40f8-baa8-b7d47a93e9f5
 # ╟─003a5c0b-17c7-4407-ad23-21c0ac000fd4
 # ╟─dc04ffc5-c96d-48c2-b89a-9094c57f1623
 # ╟─05695820-fa21-49b7-b52f-8a94cf2fa0fa

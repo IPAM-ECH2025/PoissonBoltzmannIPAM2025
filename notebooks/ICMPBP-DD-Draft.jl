@@ -283,7 +283,7 @@ end
 # ╔═╡ f579cf2d-9511-48a8-bf11-7400ef76ee3d
 function plotsol(
         sol, sys; data = data(sys),
-        grid = sys.grid, size = (600, 400), Mscale = 60
+        grid = sys.grid, size = (600, 600), Mscale = 60
     )
     PythonPlot.clf()
     fig, ax = pyplot.subplots(3, 1)
@@ -329,10 +329,11 @@ function plotsol(
 
 
 	ax3.grid()
-	ax3.plot(X/nm, sol[data.iE,:])
+	ax3.plot(X/nm, sol[data.iE,:], color="pink", label="E")
 	ax3r = ax3.twinx()
-	ax3r.plot(X/nm, calc_χ(sol,sys))
-
+	ax3r.plot(X/nm, calc_χ(sol,sys), color="orange", label="χ")
+    ax3.legend(loc = (0.1, 0.1))
+    ax3r.legend(loc = (0.8, 0.1))
     tight_layout()
     return PythonPlot.gcf()
 end
@@ -346,6 +347,7 @@ begin
     )
     set_molarity!(data1, M1_avg)
     data1.conserveions = true
+	data1.χvar=true
 end
 
 # ╔═╡ 8433319f-2f78-494c-9b2e-a5390cf93b00

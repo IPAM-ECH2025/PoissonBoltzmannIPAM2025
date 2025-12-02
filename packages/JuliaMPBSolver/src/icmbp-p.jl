@@ -94,7 +94,10 @@ begin
         n_avg::Vector{Float64} = fill(molarity, N)
 
         "Surface charges"
-        q::Vector{Float64} = [0, 0] * ufac"C/m^2"
+        q::Float64 = 0 * ufac"C/m^2"
+
+        "Applied potential"
+        φ::Float64 = 0 * ufac"C/m^2"
 
         "Solvent molarity"
         n0_ref::Float64 = 55.508 * ph"N_A" / ufac"dm^3"
@@ -175,7 +178,18 @@ md"""
 
 # ╔═╡ 4929c105-4c01-4c83-ad2f-2056a8c51d29
 function apply_charge!(data::ICMPBData, q)
-    data.q .= [q, - q]
+    data.q = q
+    return data
+end
+
+# ╔═╡ 308d7e40-1e15-475e-90a2-394a64e0e8d0
+md"""
+#### `apply_voltage!(data, q)`
+"""
+
+# ╔═╡ acc60604-bcc5-4ecf-9772-e2fc851a9232
+function apply_voltage!(data::ICMPBData, φ)
+    data.φ = φ
     return data
 end
 
@@ -529,8 +543,8 @@ Obtain ion number densities from system
 # ╔═╡ 800dfed8-9f29-4138-96f8-e8bf1f2f00e6
 function calc_cnum(sol, sys)
     data = sys.physics.data
-    i3 = sys.grid[BFaceNodes][3][1]
     if data.conserveions
+        i3 = sys.grid[BFaceNodes][3][1]
         ddata = DerivedData(data, sol[(data.coffset + 1):end, i3])
     else
         ddata = DerivedData(data)
@@ -549,8 +563,8 @@ end;
 function calc_c0num(sol, sys)
     data = sys.physics.data
     grid = sys.grid
-    i3 = sys.grid[BFaceNodes][3][1]
     if data.conserveions
+        i3 = sys.grid[BFaceNodes][3][1]
         ddata = DerivedData(data, sol[(data.coffset + 1):end, i3])
     else
         ddata = DerivedData(data)
@@ -591,6 +605,12 @@ calc_cmol(sol, sys) = calc_cnum(sol, sys) / (ph"N_A" * ufac"mol/dm^3");
 
 # ╔═╡ 79cc671b-ef6e-42da-8641-61e43f221cb1
 calc_c0mol(sol, sys) = calc_c0num(sol, sys) / (ph"N_A" * ufac"mol/dm^3");
+
+# ╔═╡ dad1836b-17f0-42ca-b527-799a6f5c3d07
+function calc_spacecharge(sys, sol)
+    data = sys.physics.data
+    return VoronoiFVM.integrate(sys, (y, u, node, data) -> y[data.iφ] = -spacecharge(u, data), sol)[data.iφ, 1]
+end
 
 # ╔═╡ 02d69f1c-4525-4f69-9938-cb0495171c3a
 md"""
@@ -660,10 +680,7 @@ Callback which runs in every grid point.
 
 # ╔═╡ e1c13f1e-5b67-464b-967b-25e3a93e33d9
 function reaction!(f, u, node, data)
-    (; i0, iφ, ip, N) = data
-    φ = u[iφ]
-    p = u[ip]
-    f[iφ] = -spacecharge(u, data)
+    f[data.iφ] = -spacecharge(u, data)
     return
 end;
 
@@ -716,8 +733,8 @@ Boundary condition callback. The Dirichlet condition for the pressure in the mid
 # ╔═╡ 743b9a7a-d6ac-4da0-8538-2045d965b547
 function bcondition!(y, u, bnode, data)
     (; iφ, ip) = data
-    boundary_neumann!(y, u, bnode, species = iφ, region = 2, value = data.q[2])
-    boundary_neumann!(y, u, bnode, species = iφ, region = 1, value = data.q[1])
+    boundary_neumann!(y, u, bnode, species = iφ, region = 2, value = data.q)
+    boundary_neumann!(y, u, bnode, species = iφ, region = 1, value = -data.q)
     boundary_dirichlet!(y, u, bnode, species = ip, region = 3, value = 0)
     return nothing
 end
@@ -762,8 +779,9 @@ function ionconservation!(f, u, sys, data)
     (; coffset, i0, iφ, iE, ip, N, z, nv, n_avg) = data
     # Set the result to zero
     f .= 0
-    # Find  mid-of-the-domain node number from boundary region 3
-    i3 = sys.grid[BFaceNodes][3][1]
+
+    i3 = 0
+
     X = sys.grid[Coordinates][1, :]
 
     # Parameters u and f come as vectors, `idx` allows to access their contents with
@@ -772,6 +790,8 @@ function ionconservation!(f, u, sys, data)
 
     # Obtain values of the bulk molecular densities
     if data.conserveions
+        # Find  mid-of-the-domain node number from boundary region 3
+        i3 = sys.grid[BFaceNodes][3][1]
         n_E = [u[idx[coffset + i, i3]] * data.cscale for i in 1:N]
         # Calculate derived data
         ddata = DerivedData(data, n_E)
@@ -855,8 +875,8 @@ function ICMPBSystem(grid, data)
         for α in 1:data.N
             enable_boundary_species!(sys, data.coffset + α, [3])
         end
-        data.nv = nodevolumes(sys)
     end
+    data.nv = nodevolumes(sys)
 
     return sys
 end;
@@ -873,9 +893,6 @@ md"""
 Sweep over series of surface charges and calculate resulting potential
 difference.
 """
-
-# ╔═╡ 3b389ecf-4c63-4eb8-b8be-76442eacef80
-
 
 # ╔═╡ 178b947f-3fef-44ed-9eca-fdb9916bc2b6
 function qsweep(sys; qmax = 10, nsteps = 100, verbose = "", kwargs...)
@@ -945,6 +962,8 @@ end
 # ╠═0d825f88-cd67-4368-90b3-29f316b72e6e
 # ╟─858ed8e1-84b1-4105-8ea0-45209aea40c6
 # ╠═4929c105-4c01-4c83-ad2f-2056a8c51d29
+# ╟─308d7e40-1e15-475e-90a2-394a64e0e8d0
+# ╠═acc60604-bcc5-4ecf-9772-e2fc851a9232
 # ╟─f3049938-2637-401d-9411-4d7be07c19ca
 # ╟─e69e10cc-e21a-418d-90b2-ae218dca0c73
 # ╠═5d6340c4-2ddd-429b-a60b-3de5570a7398
@@ -986,6 +1005,7 @@ end
 # ╟─9fe3ca93-c051-426e-8b9a-cc59f59319ad
 # ╠═2ee34d76-7238-46c2-94d1-a40d8b017af6
 # ╠═79cc671b-ef6e-42da-8641-61e43f221cb1
+# ╠═dad1836b-17f0-42ca-b527-799a6f5c3d07
 # ╟─02d69f1c-4525-4f69-9938-cb0495171c3a
 # ╠═48670f54-d303-4c3a-a191-06e6592a2e0a
 # ╟─7a607454-7b75-4313-920a-2dbdad258015
@@ -1007,7 +1027,6 @@ end
 # ╠═b0a45e53-8b98-4e18-8b41-7f6d0bc1f76e
 # ╟─3dc0d408-ab00-4da0-9999-2ddf6e4fbf60
 # ╟─a67c0d46-456d-4b0c-8519-961b37043350
-# ╠═3b389ecf-4c63-4eb8-b8be-76442eacef80
 # ╠═178b947f-3fef-44ed-9eca-fdb9916bc2b6
 # ╟─4032bc46-7820-45d4-bc11-9350ecf1797a
 # ╠═fc84996b-02c0-4c16-8632-79f4e1900f78

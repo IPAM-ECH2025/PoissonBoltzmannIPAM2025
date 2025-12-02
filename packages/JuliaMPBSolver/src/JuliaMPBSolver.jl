@@ -24,7 +24,9 @@ module ICMPBP
     using ExtendableGrids
     using VoronoiFVM
     using LinearAlgebra
+    using SciMLBase
     include("icmbp-p.jl")
+    include("cells.jl")
 end
 
 include("api.jl")

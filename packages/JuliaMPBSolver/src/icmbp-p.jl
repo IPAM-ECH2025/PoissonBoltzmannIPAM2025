@@ -117,6 +117,9 @@ begin
         "Dielectric susceptibility model flag"
         χvar::Bool = false
 
+        "Dielectric susceptibility model flag"
+        χvarext::Bool = false
+
         "Solvent molar fraction index"
         i0::Int = N + 1
 
@@ -140,6 +143,9 @@ begin
 
         "Concentration scaling parameter"
         cscale::Float64 = ph"N_A"
+
+        "Electric field scaling parameter"
+        Escale::Float64 = 1.0 / ufac"nm"
 
         "Reference voltage"
         E_ref::Float64 = 0.0 * ufac"V"
@@ -284,7 +290,7 @@ function W(x)
     result = 1.0 / 3.0 + u * result
     ysmall = 3 * result
     ylarge = 3 * ((coth(x) - 1.0 / x) / x)
-    return ifelse(abs(x) < 0.5, ysmall, ylarge)
+    return ifelse(abs(x) < 0.1, ysmall, ylarge)
 end
 
 # ╔═╡ 9aa654e2-4cd9-4b31-af84-8060729cd3a3
@@ -299,7 +305,7 @@ function Λ(x) # thx 深度求索
     u = x * x
     ysmall = log(1.0 + u * (1.0 / 6.0 + u * (1.0 / 120.0 + u * (1.0 / 5040.0 + u * (1.0 / 362880.0)))))
     ylarge = log(sinh(x) / x)
-    return ifelse(abs(x) < 0.5, ysmall, ylarge)
+    return ifelse(abs(x) < 0.1, ysmall, ylarge)
 end
 
 # ╔═╡ a26cf11b-0ce1-4c1d-a64d-1917178ff676
@@ -321,7 +327,7 @@ Ion molar fractions
 # ╔═╡ 188f67d8-2ae8-474c-8e58-68b8b4fde02e
 function y_α(φ, p, E, α, data, ddata)
     η_φ = data.z[α] * data.e * (φ - data.E_ref)
-    η_p = ddata.v[α] * (p * data.pscale - data.p_ref)
+    η_p = ddata.v[α] * (p - data.p_ref)
     return ddata.y_E[α] * exp(-(η_φ + η_p) / (data.kT) + data.χvar * Λ(data.δ[α] * E / data.kT))
 end;
 
@@ -334,7 +340,7 @@ Solvent molar fraction
 
 # ╔═╡ d7531d5f-fc2d-42b2-9cf9-6a737b0f0f8d
 function y0(p, E, data, ddata)
-    return ddata.y0_E * exp(-data.v0 * (p * data.pscale - data.p_ref) / (data.kT) + data.χvar * Λ(data.δ0 * E / data.kT))
+    return ddata.y0_E * exp(-data.v0 * (p - data.p_ref) / (data.kT) + data.χvar * Λ(data.δ0 * E / data.kT))
 end;
 
 # ╔═╡ f6f004a6-d71b-4813-a363-9f51dc37e42a
@@ -397,18 +403,22 @@ function spacecharge(u, data)
     return data.e * sumyz / sumyv
 end
 
+
 # ╔═╡ bf7f8bab-4807-440b-8796-fcf75ad313d7
 function susceptibility(u, data)
-    (; iE, i0) = data
+    (; iE, i0, Escale) = data
+    E = u[iE] * Escale
     y = u[i0]
-    χ = data.v0 * u[i0] * data.χ0 * W(data.δ0 * u[iE] / data.kT)
+    χ = data.v0 * y * data.χ0 * W(data.δ0 * E / data.kT)
     sumyv = data.v0 * y
     for α in 1:(data.N)
+        y = u[α]
         v = data.vu[α] + data.κ[α] * data.v0
-        χ += v * u[α] * data.χ[α] * W(data.δ[α] * u[iE] / data.kT)
-        sumyv += v * u[α]
+        χ += v * y * data.χ[α] * W(data.δ[α] * E / data.kT)
+        sumyv += v * y
     end
-    return χ / sumyv
+    χ = χ / sumyv
+    return χ
 end
 
 # ╔═╡ b41838bb-3d5b-499c-9eb5-137c252ae366
@@ -578,6 +588,11 @@ function calc_c0num(sol, sys)
     return c0
 end;
 
+# ╔═╡ 4baae81f-e68a-4259-a095-4194fde390d2
+md"""
+#### calc_χ(sol,sys)
+"""
+
 # ╔═╡ 3b7a90cd-8f58-4abc-805a-2891ad6ceb9a
 function calc_χ(sol, sys)
     data = sys.physics.data
@@ -680,6 +695,7 @@ Callback which runs in every grid point.
 
 # ╔═╡ e1c13f1e-5b67-464b-967b-25e3a93e33d9
 function reaction!(f, u, node, data)
+    # Everything dependent on u is on the left side of the equation, therefore the minus sign
     f[data.iφ] = -spacecharge(u, data)
     return
 end;
@@ -689,37 +705,45 @@ md"""
 #### `poisson_and_p_flux!(f, u, edge, data)`
 
 Runs on every grid edge. Calculate fluxes for the Poisson and the pressure equations.
+```math
+	-\nabla \cdot (\varepsilon_0(1+χ) \nabla \varphi) - q =0
+```
 """
 
 # ╔═╡ 64e47917-9c61-4d64-a6a1-c6e8c7b28c59
 function poisson_and_p_flux!(f, u, edge, data)
-    (; iφ, ip, iE, N) = data
+    (; iφ, ip, iE, Escale, N) = data
     nspec = size(u, 1)
-    E1 = u[iE, 1]
-    E2 = u[iE, 2]
-    uu = zeros(eltype(u), nspec)
+    T = eltype(u)
+    uu1 = zeros(eltype(u), nspec)
+    uu2 = zeros(eltype(u), nspec)
     for i in 1:nspec
-        uu[i] = u[i, 1]
+        uu1[i] = u[i, 1]
+        uu2[i] = u[i, 2]
     end
-    χ1 = susceptibility(uu, data)
-    q1 = spacecharge(uu, data)
-    for i in 1:nspec
-        uu[i] = u[i, 2]
-    end
-    χ2 = susceptibility(uu, data)
-    q2 = spacecharge(uu, data)
+
+    q1 = spacecharge(uu1, data)
+    q2 = spacecharge(uu2, data)
+
+    χ = T(data.χ0)
+    E = zero(T)
+    χ1 = zero(T)
+    χ2 = zero(T)
 
     if data.χvar
+        χ1 = susceptibility(uu1, data)
+        χ2 = susceptibility(uu2, data)
         χ = (χ1 + χ2) / 2
-    else
-        χ = data.χ0
+        if data.χvarext
+            E1 = u[iE, 1] * Escale
+            E2 = u[iE, 2] * Escale
+            E = (E1 + E2) / 2
+        end
     end
-    χ = data.χ0
 
     f[iφ] = (1.0 + χ) * data.ε_0 * (u[iφ, 1] - u[iφ, 2])
-    f[ip] =
-        (u[ip, 1] - u[ip, 2]) + (u[iφ, 1] - u[iφ, 2]) * (q1 + q2) / (2 * data.pscale)
-    - data.χvar * (data.ε_0 / 2) * ((E1 + E2) / 2)^2 * (χ1 - χ2)
+    # pressure equation is scaled with 1/pscale
+    f[ip] = (u[ip, 1] - u[ip, 2]) + (u[iφ, 1] - u[iφ, 2]) * (q1 + q2) / (2 * data.pscale) + data.ε_0 * E^2 * (χ1 - χ2) / (2 * data.pscale)
     return
 end;
 
@@ -776,7 +800,7 @@ end
 
 # ╔═╡ dbccaa88-65d9-47ab-be78-83df64a6db24
 function ionconservation!(f, u, sys, data)
-    (; coffset, i0, iφ, iE, ip, N, z, nv, n_avg) = data
+    (; coffset, i0, iφ, ip, iE, Escale, pscale, N, z, nv, n_avg) = data
     # Set the result to zero
     f .= 0
 
@@ -801,16 +825,16 @@ function ionconservation!(f, u, sys, data)
 
     # Calculate molar fractions for all nodes of the grid
     for i in 1:num_nodes(sys.grid)
-        f[idx[i0, i]] = u[idx[i0, i]] - y0(u[idx[ip, i]], u[idx[iE, i]], data, ddata)
+        f[idx[i0, i]] = u[idx[i0, i]] - y0(u[idx[ip, i]] * pscale, u[idx[iE, i]] * Escale, data, ddata)
         for α in 1:N
-            f[idx[α, i]] = u[idx[α, i]] - y_α(u[idx[iφ, i]], u[idx[ip, i]], u[idx[iE, i]], α, data, ddata)
+            f[idx[α, i]] = u[idx[α, i]] - y_α(u[idx[iφ, i]], u[idx[ip, i]] * pscale, u[idx[iE, i]] * Escale, α, data, ddata)
         end
         if i == 1
-            f[idx[iE, i]] = u[idx[iE, i]] - abs((u[idx[iφ, i + 1]] - u[idx[iφ, i]]) / (X[i + 1] - X[i]))
+            f[idx[iE, i]] = u[idx[iE, i]] - abs((u[idx[iφ, i + 1]] - u[idx[iφ, i]]) / (X[i + 1] - X[i])) / Escale
         elseif i == num_nodes(sys.grid)
-            f[idx[iE, i]] = u[idx[iE, i]] - abs((u[idx[iφ, i - 1]] - u[idx[iφ, i]]) / (X[i - 1] - X[i]))
+            f[idx[iE, i]] = u[idx[iE, i]] - abs((u[idx[iφ, i - 1]] - u[idx[iφ, i]]) / (X[i - 1] - X[i])) / Escale
         else
-            f[idx[iE, i]] = u[idx[iE, i]] - abs((u[idx[iφ, i + 1]] - u[idx[iφ, i - 1]]) / (X[i + 1] - X[i - 1]))
+            f[idx[iE, i]] = u[idx[iE, i]] - abs((u[idx[iφ, i + 1]] - u[idx[iφ, i - 1]]) / (X[i + 1] - X[i - 1])) / Escale
         end
     end
 
@@ -1001,6 +1025,7 @@ end
 # ╟─0c54efd0-f279-4dc6-8b00-ba092dd13f44
 # ╠═800dfed8-9f29-4138-96f8-e8bf1f2f00e6
 # ╠═24910762-7d56-446b-a758-d8e830fe9a09
+# ╟─4baae81f-e68a-4259-a095-4194fde390d2
 # ╠═3b7a90cd-8f58-4abc-805a-2891ad6ceb9a
 # ╟─9fe3ca93-c051-426e-8b9a-cc59f59319ad
 # ╠═2ee34d76-7238-46c2-94d1-a40d8b017af6
@@ -1015,7 +1040,7 @@ end
 # ╟─05695820-fa21-49b7-b52f-8a94cf2fa0fa
 # ╟─b9b0cb4f-cf72-418e-a65e-0f4c8a10e34c
 # ╠═e1c13f1e-5b67-464b-967b-25e3a93e33d9
-# ╟─c1168002-a716-4568-9a52-ac00f32f0134
+# ╠═c1168002-a716-4568-9a52-ac00f32f0134
 # ╠═64e47917-9c61-4d64-a6a1-c6e8c7b28c59
 # ╟─05acd04f-74af-42f9-b039-7ee5b2ba63ff
 # ╠═743b9a7a-d6ac-4da0-8538-2045d965b547

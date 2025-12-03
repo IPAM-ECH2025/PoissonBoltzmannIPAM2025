@@ -24,6 +24,19 @@ function VoronoiFVM.unknowns(cell::AbstractMPBCell)
     return u
 end
 
+mpbdata(cell) = cell.sys.physics.data
+
+calc_cmol(sol, cell::AbstractMPBCell) = calc_cmol(sol, cell.sys)
+calc_c0mol(sol, cell::AbstractMPBCell) = calc_c0mol(sol, cell.sys)
+calc_χ(sol, cell::AbstractMPBCell) = calc_χ(sol, cell.sys)
+get_E(sol, cell::AbstractMPBCell) = sol[mpbdata(cell).iE, :] * mpbdata(cell).Escale
+get_φ(sol, cell::AbstractMPBCell) = sol[mpbdata(cell).iφ, :]
+get_p(sol, cell::AbstractMPBCell) = sol[mpbdata(cell).ip, :] * mpbdata(cell).pscale
+get_c0(sol, cell::AbstractMPBCell) = sol[mpbdata(cell).i0, :]
+set_κ!(cell::AbstractMPBCell, κ::Number) = mpbdata(cell).κ = [κ, κ]
+set_molarity!(cell::AbstractMPBCell, M) = set_molarity!(mpbdata(cell), M)
+set_φ!(cell::AbstractMPBCell, φ::Number) = mpbdata(cell).φ = φ
+
 function SciMLBase.solve(cell::AbstractMPBCell; inival = unknowns(cell), verbose = "", damp_initial = 0.1, kwargs...)
     sys = cell.sys
     return solve(sys; inival, damp_initial, verbose, kwargs...)
@@ -43,10 +56,11 @@ function halfcell_applied_potential_bcondition!(y, u, bnode, data)
 end
 
 function AppliedPotentialHalfCell(grid, data; dielectric_decrement = false)
-
+    data = deepcopy(data)
     data.nv = ones(num_nodes(grid)) # help to satisfy sparsity detector
     data.conserveions = false
     data.χvar = dielectric_decrement
+    data.χvarext = dielectric_decrement
 
     sys = VoronoiFVM.System(
         grid;
@@ -71,20 +85,23 @@ function AppliedPotentialHalfCell(grid, data; dielectric_decrement = false)
     return AppliedPotentialHalfCell(sys)
 end
 
-function dlcapsweep(cell::AppliedPotentialHalfCell; φ_max = 1.0, δφ = 1.0e-3, steps = 100)
+function dlcapsweep(cell::AppliedPotentialHalfCell; φ_max = 1.0, δφ = 1.0e-3, steps = 101, damp_initial = 1, kwargs...)
     sys = cell.sys
     data = sys.physics.data
     apply_voltage!(data, 0)
-    sol0 = solve(cell)
+    sol0 = solve(cell; damp_initial)
     volts = zeros(0)
     dlcaps = zeros(0)
     for dir in [-1, 1]
         sol = sol0
         for φ in range(0, φ_max, length = steps)
+
             apply_voltage!(data, dir * φ)
-            sol = solve(cell; inival = sol, damp_initial = 1.0)
+            sol = solve(cell; inival = sol, damp_initial, kwargs...)
+
             apply_voltage!(data, dir * (φ + δφ))
-            solδ = solve(cell; inival = sol, damp_initial = 1.0)
+            solδ = solve(cell; inival = sol, damp_initial, kwargs...)
+
             Q = calc_spacecharge(sys, sol)
             Qδ = calc_spacecharge(sys, solδ)
             cdl = (Qδ - Q) / (dir * δφ)

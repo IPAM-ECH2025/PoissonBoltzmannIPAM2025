@@ -177,6 +177,9 @@ begin
     end
 end
 
+# ╔═╡ 0089bc79-cc71-45b6-985b-932db659df98
+ICMPBData()
+
 # ╔═╡ 858ed8e1-84b1-4105-8ea0-45209aea40c6
 md"""
 #### `apply_charge!(data,q)`
@@ -870,7 +873,7 @@ function ionconservation!(f, u, sys, data)
 end
 
 # ╔═╡ 7bf3a130-3b47-428e-916f-4a0ec1237844
-function ICMPBSystem(grid, data)
+function ICMPBSystem(grid, data; valuetype = Float64)
 
     data.nv = ones(num_nodes(grid)) # trigger sparsity detector
     sys = VoronoiFVM.System(
@@ -880,7 +883,8 @@ function ICMPBSystem(grid, data)
         reaction = reaction!,
         bcondition = bcondition!,
         generic = ionconservation!,
-        unknown_storage = :sparse
+        unknown_storage = :sparse,
+        valuetype
     )
 
     # Enable species for all fields
@@ -984,6 +988,7 @@ end
 # ╠═55b2ee36-c4f9-4ba3-84ed-faeb556aa026
 # ╟─6e4aaa60-29c5-4f75-a3f1-24e340c25e6c
 # ╠═0d825f88-cd67-4368-90b3-29f316b72e6e
+# ╠═0089bc79-cc71-45b6-985b-932db659df98
 # ╟─858ed8e1-84b1-4105-8ea0-45209aea40c6
 # ╠═4929c105-4c01-4c83-ad2f-2056a8c51d29
 # ╟─308d7e40-1e15-475e-90a2-394a64e0e8d0

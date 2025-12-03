@@ -26,6 +26,7 @@ begin
     using ExtendableGrids
     using LinearAlgebra
     using LessUnitful
+	using DoubleFloats
     using Test
     using PythonPlot
     using Colors
@@ -161,6 +162,9 @@ begin
     const mol = ufac"mol"
 end;
 
+# ╔═╡ 1a7e5bc4-fd00-458f-b279-be5b2a65f18d
+
+
 # ╔═╡ ae11bded-9f67-4004-8786-ed54e1ccb932
 surfcharge(n) = n * ph"e" / ufac"nm^2"
 
@@ -247,7 +251,7 @@ end;
 # ╔═╡ 2ef6b8d7-e5f3-4700-8a40-8feffab3569f
 floataside(
     md"""
-    - ``L/nm``: $(@bind L0 PlutoUI.Slider(2:2:10, default=10, show_value=true))		   
+    - ``L/nm``: $(@bind L0 PlutoUI.Slider(2:1:10, default=10, show_value=true))		   
     - ``M_{avg}/(mol/dm^3)``:  $(@bind M1_avg PlutoUI.Slider(0.1:0.1:2, default=1, show_value=true))
     - ``n_e/(e/nm^2)``: $(@bind n1_e PlutoUI.Slider(0:0.5:5, default=1, show_value=true))
     - ``κ``: $(@bind kappa1 PlutoUI.Slider(0:1:20, default=10, show_value=true))
@@ -265,8 +269,6 @@ begin
     data1.conserveions = true
     data1.χvar = true
     data1.χvarext = true
-	data1.δ0/=5
-#	data1.Escale=1
 end
 
 # ╔═╡ 39f480a7-ce5a-46c9-ab0e-081fa3b88829
@@ -291,7 +293,7 @@ begin
 end
 
 # ╔═╡ 8433319f-2f78-494c-9b2e-a5390cf93b00
-sys1 = ICMPBSystem(grid, data1);
+sys1 = ICMPBSystem(grid, data1, valuetype=Double64);
 
 # ╔═╡ 70910bd5-b8ca-4021-9b40-233b50ea5601
 inival1 = unknowns(sys1, data1);
@@ -333,7 +335,7 @@ function plotsol(
 	if data1.conserveions
     M_bulk = sol[7:8, i3] * data.cscale / (ph"N_A" * ufac"mol/dm^3")
     crm, crp = M_bulk[1], M_bulk[2]
-    ax2.set_title("M_bulk=$(myround.((crm, crp))),  M_avg=$(myround.((cm, cp)))")
+  #  ax2.set_title("M_bulk=$(myround.((crm, crp))),  M_avg=$(myround.((cm, cp)))")
 	end
     #  ax2.set_title("M_avg=$(myround.((cm, cp)))")
     ax2.set_xlabel("z/nm")
@@ -395,7 +397,8 @@ plotsol(sol1, sys1; Mscale)
 # ╠═eacdd772-1869-406a-b601-64cdd6453ec1
 # ╟─760e5861-7a6f-41bb-8aec-5e7466c6ec9f
 # ╠═f4facb34-1f4a-432d-8a1e-30299e542bcd
-# ╟─2ef6b8d7-e5f3-4700-8a40-8feffab3569f
+# ╠═2ef6b8d7-e5f3-4700-8a40-8feffab3569f
+# ╠═1a7e5bc4-fd00-458f-b279-be5b2a65f18d
 # ╠═a629e8a1-b1d7-42d8-8c17-43475785218e
 # ╠═ae11bded-9f67-4004-8786-ed54e1ccb932
 # ╠═8433319f-2f78-494c-9b2e-a5390cf93b00

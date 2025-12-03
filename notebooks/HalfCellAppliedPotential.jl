@@ -15,6 +15,7 @@ begin
     using LinearAlgebra
     using LessUnitful
     using Test
+	using DoubleFloats
     using PythonPlot
     using PythonPlot: pyplot
     using LaTeXStrings
@@ -72,11 +73,11 @@ datavhalf.δ0/datavhalf.kT
 
 # ╔═╡ 1bb47749-edde-4bee-be9f-059a7652b354
 begin
-	halfcell = AppliedPotentialHalfCell(gridhalf, datavhalf, dielectric_decrement=false);
+	halfcell = AppliedPotentialHalfCell(gridhalf, datavhalf, dielectric_decrement=false, valuetype=Double64);
 
-	halfcelldd = AppliedPotentialHalfCell(gridhalf, datavhalf, dielectric_decrement=true);
+	halfcelldd = AppliedPotentialHalfCell(gridhalf, datavhalf, dielectric_decrement=true, valuetype=Double64);
 
-	halfcelldd.sys.physics.data.δ0/=5
+	halfcelldd.sys.physics.data.δ0/=1
 end;
 
 # ╔═╡ 2aae6847-4007-495f-9921-628a8120b277
@@ -184,7 +185,7 @@ end
 # ╔═╡ 2cf54b71-d99b-40bd-b9a6-0a7cf919614b
 let
     molarities = [0.001, 0.01, 0.1, 1]
-	φ_max=0.5
+	φ_max=0.1
     colors = makecolors(molarities)
     pyplot.close()
     clf()
@@ -214,7 +215,7 @@ end
 # ╔═╡ cc8e8ba6-4cc6-4e8a-bbd6-07b9f61c2ef5
 let
     kappas = [5, 10, 20]
-	φ_max=0.5
+	φ_max=0.1
     colors = makecolors(kappas)
     pyplot.close()
     clf()
@@ -322,7 +323,7 @@ restart_button() = html"""
 
 # ╔═╡ Cell order:
 # ╟─af6ae00d-f032-4743-878b-e575466b6e84
-# ╟─a70cef7d-2a2f-4155-bdf3-fec9df94c63f
+# ╠═a70cef7d-2a2f-4155-bdf3-fec9df94c63f
 # ╠═87d66a6f-b40d-4d76-afc6-4b4f086e80a4
 # ╠═087614cc-a4f6-4867-a6bd-201d1f2a7fc2
 # ╠═c7a51cb9-790a-4818-95d7-c32f2252e8b3
@@ -334,8 +335,8 @@ restart_button() = html"""
 # ╠═1bb47749-edde-4bee-be9f-059a7652b354
 # ╟─2aae6847-4007-495f-9921-628a8120b277
 # ╟─c78c205a-7cf3-4762-81fb-a134b03ed8ad
-# ╟─2cf54b71-d99b-40bd-b9a6-0a7cf919614b
-# ╟─cc8e8ba6-4cc6-4e8a-bbd6-07b9f61c2ef5
+# ╠═2cf54b71-d99b-40bd-b9a6-0a7cf919614b
+# ╠═cc8e8ba6-4cc6-4e8a-bbd6-07b9f61c2ef5
 # ╟─68380bc6-235b-42d1-bdc8-c843e3f91dca
 # ╟─d07ac411-7985-4b5f-a88b-8aa4037b7d65
 # ╟─8af12f1c-d35b-4cc9-8185-1bb5adbb69e8

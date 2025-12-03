@@ -55,7 +55,7 @@ function halfcell_applied_potential_bcondition!(y, u, bnode, data)
     return nothing
 end
 
-function AppliedPotentialHalfCell(grid, data; dielectric_decrement = false)
+function AppliedPotentialHalfCell(grid, data; dielectric_decrement = false, valuetype = Float64)
     data = deepcopy(data)
     data.nv = ones(num_nodes(grid)) # help to satisfy sparsity detector
     data.conserveions = false
@@ -69,7 +69,8 @@ function AppliedPotentialHalfCell(grid, data; dielectric_decrement = false)
         reaction = reaction!,
         bcondition = halfcell_applied_potential_bcondition!,
         generic = ionconservation!,
-        unknown_storage = :dense
+        unknown_storage = :dense,
+        valuetype
     )
 
     # Enable species for all fields

@@ -86,25 +86,35 @@ function AppliedPotentialHalfCell(grid, data; dielectric_decrement = false, valu
     return AppliedPotentialHalfCell(sys)
 end
 
-function dlcapsweep(cell::AppliedPotentialHalfCell; φ_max = 1.0, δφ = 1.0e-3, steps = 101, damp_initial = 1, kwargs...)
-    sys = cell.sys
-    data = sys.physics.data
-    apply_voltage!(data, 0)
+function dlcapsweep(cell::AppliedPotentialHalfCell; φ_max = 1.0, δφ = 1.0e-5, steps = 51, damp_initial = 1, kwargs...)
+    set_φ!(cell, 0)
     sol0 = solve(cell; damp_initial)
     volts = zeros(0)
     dlcaps = zeros(0)
+    χvar = cell.sys.physics.data.χvar
+
     for dir in [-1, 1]
         sol = sol0
         for φ in range(0, φ_max, length = steps)
+            set_φ!(cell, dir * φ)
 
-            apply_voltage!(data, dir * φ)
+            if χvar
+                cell.sys.physics.data.χvar = false
+                sol = solve(cell; inival = sol, kwargs...)
+                cell.sys.physics.data.χvar = true
+            end
             sol = solve(cell; inival = sol, damp_initial, kwargs...)
+            Q = calc_spacecharge(cell.sys, sol)
 
-            apply_voltage!(data, dir * (φ + δφ))
-            solδ = solve(cell; inival = sol, damp_initial, kwargs...)
+            set_φ!(cell, dir * (φ + δφ))
+            if χvar
+                cell.sys.physics.data.χvar = false
+                sol = solve(cell; inival = sol, kwargs...)
+                cell.sys.physics.data.χvar = true
+            end
+            sol = solve(cell; inival = sol, damp_initial, kwargs...)
+            Qδ = calc_spacecharge(cell.sys, sol)
 
-            Q = calc_spacecharge(sys, sol)
-            Qδ = calc_spacecharge(sys, solδ)
             cdl = (Qδ - Q) / (dir * δφ)
             push!(volts, dir * φ)
             push!(dlcaps, cdl)

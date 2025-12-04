@@ -162,9 +162,6 @@ begin
     const mol = ufac"mol"
 end;
 
-# ╔═╡ 1a7e5bc4-fd00-458f-b279-be5b2a65f18d
-
-
 # ╔═╡ ae11bded-9f67-4004-8786-ed54e1ccb932
 surfcharge(n) = n * ph"e" / ufac"nm^2"
 
@@ -271,9 +268,6 @@ begin
     data1.χvarext = true
 end
 
-# ╔═╡ 39f480a7-ce5a-46c9-ab0e-081fa3b88829
-data1.δ0/data1.kT
-
 # ╔═╡ f8c1c2bd-7466-491e-9132-4f15edcfa4c7
 let
 	clf()
@@ -363,12 +357,10 @@ end
 # ╔═╡ d2df6ed0-e6f5-4677-b790-bfc40de7fd6a
 begin
 	Q = surfcharge(n1_e)
-	data1.q=0
-	sol1 = solve(sys1; inival = inival1, damp_initial = 0.1, verbose="")
-	for q in range(0.1*Q, Q, length=30)
-		@show q
+	sol1=inival1
+	for q in range(0, Q, length=11)
 		data1.q=q
-		sol1 = solve(sys1; inival = sol1, damp_initial = 1,verbose="n")
+		sol1 = solve(sys1; inival = sol1,verbose="")
 	end
 end
 
@@ -379,6 +371,9 @@ Newton steps: $(length(history(sol1)))
 
 # ╔═╡ c7a08779-53f3-4fab-8bd4-3dffe6135c3b
 plotsol(sol1, sys1; Mscale)
+
+# ╔═╡ 0e4ec7f0-0aa8-4a32-96a3-40f63f32a12d
+sol1
 
 # ╔═╡ Cell order:
 # ╠═60941eaa-1aea-11eb-1277-97b991548781
@@ -393,17 +388,16 @@ plotsol(sol1, sys1; Mscale)
 # ╟─bab7b779-339d-4702-a88a-e6cbf5a72cd0
 # ╟─16a79117-e89b-4478-a571-8c011b5784c1
 # ╟─5f153fe4-4476-401e-8674-b6902213c19e
-# ╟─c7a08779-53f3-4fab-8bd4-3dffe6135c3b
+# ╠═c7a08779-53f3-4fab-8bd4-3dffe6135c3b
+# ╠═0e4ec7f0-0aa8-4a32-96a3-40f63f32a12d
 # ╠═eacdd772-1869-406a-b601-64cdd6453ec1
 # ╟─760e5861-7a6f-41bb-8aec-5e7466c6ec9f
 # ╠═f4facb34-1f4a-432d-8a1e-30299e542bcd
-# ╠═2ef6b8d7-e5f3-4700-8a40-8feffab3569f
-# ╠═1a7e5bc4-fd00-458f-b279-be5b2a65f18d
+# ╟─2ef6b8d7-e5f3-4700-8a40-8feffab3569f
 # ╠═a629e8a1-b1d7-42d8-8c17-43475785218e
 # ╠═ae11bded-9f67-4004-8786-ed54e1ccb932
 # ╠═8433319f-2f78-494c-9b2e-a5390cf93b00
 # ╠═70910bd5-b8ca-4021-9b40-233b50ea5601
-# ╠═39f480a7-ce5a-46c9-ab0e-081fa3b88829
 # ╠═d2df6ed0-e6f5-4677-b790-bfc40de7fd6a
 # ╠═f8c1c2bd-7466-491e-9132-4f15edcfa4c7
 # ╟─f75f1d3a-47e5-475b-97b1-bb275a510783

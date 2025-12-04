@@ -144,8 +144,11 @@ begin
         "Concentration scaling parameter"
         cscale::Float64 = ph"N_A"
 
+        "Charge scaleing parameter"
+        qscale::Float64 = 1.0 / ph"e"
+
         "Electric field scaling parameter"
-        Escale::Float64 = 1.0 / ufac"nm"
+        Escale::Float64 = ufac"V/nm"
 
         "Reference voltage"
         E_ref::Float64 = 0.0 * ufac"V"
@@ -233,7 +236,7 @@ L_{Debye}=\sqrt{ \frac{(1+χ)ε_0k_BT}{e^2n_E}}
 # ╔═╡ a41c6c1f-ceb5-4590-a421-cae5078d167b
 function L_Debye(data)
     return sqrt(
-        (1 + data.χ) * data.ε_0 * ph"k_B" * data.T / (data.e^2 * data.n_E[1]),
+        (1 + data.χ0) * data.ε_0 * ph"k_B" * data.T / (data.e^2 * data.n_E[1]),
     )
 end;
 
@@ -683,7 +686,7 @@ md"""
 
 # ╔═╡ 05695820-fa21-49b7-b52f-8a94cf2fa0fa
 md"""
-We use N+3 fields of unknowns in the following sequence:
+We use N+4 fields of unknowns in the following sequence:
 ``y_1 \dots y_N, y_0, \varphi, p, E``. Pressures are scaled by `pscale` (default: 1GPa).
 """
 
@@ -699,7 +702,7 @@ Callback which runs in every grid point.
 # ╔═╡ e1c13f1e-5b67-464b-967b-25e3a93e33d9
 function reaction!(f, u, node, data)
     # Everything dependent on u is on the left side of the equation, therefore the minus sign
-    f[data.iφ] = -spacecharge(u, data)
+    f[data.iφ] = -spacecharge(u, data) * data.qscale
     return
 end;
 
@@ -744,7 +747,8 @@ function poisson_and_p_flux!(f, u, edge, data)
         end
     end
 
-    f[iφ] = (1.0 + χ) * data.ε_0 * (u[iφ, 1] - u[iφ, 2])
+    f[iφ] = (1.0 + χ) * data.ε_0 * (u[iφ, 1] - u[iφ, 2]) * data.qscale
+
     # pressure equation is scaled with 1/pscale
     f[ip] = (u[ip, 1] - u[ip, 2]) + (u[iφ, 1] - u[iφ, 2]) * (q1 + q2) / (2 * data.pscale) + data.ε_0 * E^2 * (χ1 - χ2) / (2 * data.pscale)
     return
@@ -760,8 +764,8 @@ Boundary condition callback. The Dirichlet condition for the pressure in the mid
 # ╔═╡ 743b9a7a-d6ac-4da0-8538-2045d965b547
 function bcondition!(y, u, bnode, data)
     (; iφ, ip) = data
-    boundary_neumann!(y, u, bnode, species = iφ, region = 2, value = data.q)
-    boundary_neumann!(y, u, bnode, species = iφ, region = 1, value = -data.q)
+    boundary_neumann!(y, u, bnode, species = iφ, region = 2, value = data.q * data.qscale)
+    boundary_neumann!(y, u, bnode, species = iφ, region = 1, value = -data.q * data.qscale)
     boundary_dirichlet!(y, u, bnode, species = ip, region = 3, value = 0)
     return nothing
 end
@@ -826,18 +830,21 @@ function ionconservation!(f, u, sys, data)
         ddata = DerivedData(data)
     end
 
-    # Calculate molar fractions for all nodes of the grid
     for i in 1:num_nodes(sys.grid)
+
+        # Calculate molar fractions
         f[idx[i0, i]] = u[idx[i0, i]] - y0(u[idx[ip, i]] * pscale, u[idx[iE, i]] * Escale, data, ddata)
         for α in 1:N
             f[idx[α, i]] = u[idx[α, i]] - y_α(u[idx[iφ, i]], u[idx[ip, i]] * pscale, u[idx[iE, i]] * Escale, α, data, ddata)
         end
+
+        # Calculate electric field strength
         if i == 1
-            f[idx[iE, i]] = u[idx[iE, i]] - abs((u[idx[iφ, i + 1]] - u[idx[iφ, i]]) / (X[i + 1] - X[i])) / Escale
+            f[idx[iE, i]] = u[idx[iE, i]] - (u[idx[iφ, i + 1]] - u[idx[iφ, i]]) / (X[i + 1] - X[i]) / Escale
         elseif i == num_nodes(sys.grid)
-            f[idx[iE, i]] = u[idx[iE, i]] - abs((u[idx[iφ, i - 1]] - u[idx[iφ, i]]) / (X[i - 1] - X[i])) / Escale
+            f[idx[iE, i]] = u[idx[iE, i]] - (u[idx[iφ, i - 1]] - u[idx[iφ, i]]) / (X[i - 1] - X[i]) / Escale
         else
-            f[idx[iE, i]] = u[idx[iE, i]] - abs((u[idx[iφ, i + 1]] - u[idx[iφ, i - 1]]) / (X[i + 1] - X[i - 1])) / Escale
+            f[idx[iE, i]] = u[idx[iE, i]] - (u[idx[iφ, i + 1]] - u[idx[iφ, i - 1]]) / (X[i + 1] - X[i - 1]) / Escale
         end
     end
 
@@ -854,9 +861,9 @@ function ionconservation!(f, u, sys, data)
             f[idx[coffset + N, i3]] += z[α] * u[idx[coffset + α, i3]] / z[N]
         end
 
+        # Calculate number density integrals
         y = zeros(eltype(u), N + 1)
         uu = zeros(eltype(u), N + 1)
-        # Calculate number density integrals
         for iv in 1:length(nv)
             for α in 1:(N + 1)
                 uu[α] = u[idx[α, iv]]

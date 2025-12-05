@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.21
+# v0.20.19
 
 using Markdown
 using InteractiveUtils
@@ -140,20 +140,8 @@ begin
     sol0 = solve!(state; inival, verbose = "n", damp_initial = 0.1)
 end
 
-# ╔═╡ d6f1acbc-d2b0-4d26-b9f6-ad46b9ddfb05
-sol0[:, i3]
-
 # ╔═╡ 1394cfd7-aecc-4559-a460-98082fd43a9c
 state.matrix
-
-# ╔═╡ a4c2f75e-6f20-4e28-8252-90d58fbf1b24
-data.conserveions
-
-# ╔═╡ efb12e12-825b-4dfd-aa10-c6afb304b6bf
-ph"e" / ufac"nm^2"
-
-# ╔═╡ 9108a7e6-176e-481b-8ca6-3c8445051e1c
-data.n_avg / ph"N_A"
 
 # ╔═╡ 6f037b32-e2a8-4693-b46c-952d6b140e8e
 begin
@@ -163,6 +151,14 @@ begin
     sol1[:, i3]
 end
 
+# ╔═╡ 388c4956-211c-40c5-b5ff-6e2059e47a38
+begin
+    Y = ysum(sys, sol1)
+end
+
+# ╔═╡ 53b7a161-87d5-4702-87ad-82e691571c2c
+@test all(x -> ≈(x, 1.0, atol = 2.0e-2), Y)
+
 # ╔═╡ 1c0145d5-76b1-48c1-8852-de1a2668285a
 molarities = [0.1, 1]
 
@@ -171,11 +167,6 @@ qsweep(sys, verbose = "n", qmax = 2)
 
 # ╔═╡ a7f2692e-a15f-47b7-8486-8948ce7ab3f7
 result_pp = capscalc(sys, molarities; qmax = 1)
-
-# ╔═╡ e114ec0d-13d3-4455-b1c9-d1c5d76671d9
-md"""
-#### Pressure poisson problem
-"""
 
 # ╔═╡ 0b6f33b9-41d4-48fd-8026-8a3bddcc1989
 md"""
@@ -199,7 +190,7 @@ function capsplot(ax, result, title)
         c = (1 - imol * hmol, 0, imol * hmol)
 
         ax.plot(
-            result[imol].voltages, result[imol].dlcaps / (μF / cm^2),
+            result[imol].voltages, -result[imol].dlcaps / (μF / cm^2),
             color = c, label = "$(result[imol].molarity)M"
         )
         ax.scatter(
@@ -216,14 +207,14 @@ let
     res = (600, 200)
     fig = figure(1, figsize = (6, 3))
     ax1 = fig.add_subplot(1, 1, 1)
-    capsplot(ax1, result_pp, "Pressure poisson")
+    capsplot(ax1, result_pp, "Double layer capacitance")
     tight_layout()
     matplotlib.pyplot.close()
     fig
 end
 
 # ╔═╡ Cell order:
-# ╠═ef660f6f-9de3-4896-a65e-13c60df5de1e
+# ╟─ef660f6f-9de3-4896-a65e-13c60df5de1e
 # ╠═60941eaa-1aea-11eb-1277-97b991548781
 # ╟─4082c3d3-b728-4bcc-b480-cdee41d9ab99
 # ╟─920b7d84-56c6-4958-aed9-fc67ba0c43f6
@@ -239,16 +230,13 @@ end
 # ╠═31a1f686-f0b6-430a-83af-187df411b293
 # ╠═684aa24b-046f-426f-9b99-f0c45c70f654
 # ╠═14ac1c80-cae5-42f1-b0d3-33aa5bba4de6
-# ╠═d6f1acbc-d2b0-4d26-b9f6-ad46b9ddfb05
 # ╠═1394cfd7-aecc-4559-a460-98082fd43a9c
-# ╠═a4c2f75e-6f20-4e28-8252-90d58fbf1b24
-# ╠═efb12e12-825b-4dfd-aa10-c6afb304b6bf
-# ╠═9108a7e6-176e-481b-8ca6-3c8445051e1c
 # ╠═6f037b32-e2a8-4693-b46c-952d6b140e8e
+# ╠═388c4956-211c-40c5-b5ff-6e2059e47a38
+# ╠═53b7a161-87d5-4702-87ad-82e691571c2c
 # ╠═1c0145d5-76b1-48c1-8852-de1a2668285a
 # ╠═f1c33101-00e6-4af9-9e68-6cdf5fe92b59
 # ╠═a7f2692e-a15f-47b7-8486-8948ce7ab3f7
-# ╟─e114ec0d-13d3-4455-b1c9-d1c5d76671d9
 # ╟─0b6f33b9-41d4-48fd-8026-8a3bddcc1989
 # ╟─1859db0c-1c1e-4a78-9d4a-e2ec45c3cffc
 # ╠═000e87b5-cd1b-4b23-99be-6b7006502312

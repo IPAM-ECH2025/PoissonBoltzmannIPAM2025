@@ -28,8 +28,7 @@ begin
     using LessUnitful
     using Test
     using PythonPlot
-    using Colors
-    using JuliaMPBSolver.ICMPBP: ICMPBData, ICMPBSystem, L_Debye, set_molarity!, dlcap0, DerivedData, apply_charge!, ysum, qsweep, capscalc, calc_cmol, calc_c0mol, calc_χ
+    using JuliaMPBSolver.ICMPBP: ICMPBData, ICMPBSystem, L_Debye, set_molarity!, dlcap0, DerivedData, apply_charge!, ysum, qsweep, capscalc, calc_cmol, calc_c0mol, calc_χ, W
 end
 
 # ╔═╡ ef660f6f-9de3-4896-a65e-13c60df5de1e
@@ -145,20 +144,6 @@ md"""
 ## Simulation result
 """
 
-# ╔═╡ 7caea4c4-9783-403c-931c-681f86166a25
-md"""
-## Next steps
-"""
-
-# ╔═╡ 65c0b7fa-de4f-454e-ac63-2723d5acc26c
-md"""
-- Finalize pyiron integration
-- Discuss comparison with molecular simulation results
-- Add dielectric decrement model 
-- Discuss additional molecular interactio terms
-- Write paper
-"""
-
 # ╔═╡ 760e5861-7a6f-41bb-8aec-5e7466c6ec9f
 md"""
 ## Simulation setup and run
@@ -173,7 +158,7 @@ begin
     const μF = ufac"μF"
     const N_A = ph"N_A"
     const mol = ufac"mol"
-end
+end;
 
 # ╔═╡ ae11bded-9f67-4004-8786-ed54e1ccb932
 surfcharge(n) = n * ph"e" / ufac"nm^2"
@@ -261,7 +246,7 @@ end;
 # ╔═╡ 2ef6b8d7-e5f3-4700-8a40-8feffab3569f
 floataside(
     md"""
-    - ``L/nm``: $(@bind L0 PlutoUI.Slider(2:2:10, default=10, show_value=true))		   
+    - ``L/nm``: $(@bind L0 PlutoUI.Slider(2:1:10, default=10, show_value=true))		   
     - ``M_{avg}/(mol/dm^3)``:  $(@bind M1_avg PlutoUI.Slider(0.1:0.1:2, default=1, show_value=true))
     - ``n_e/(e/nm^2)``: $(@bind n1_e PlutoUI.Slider(0:0.5:5, default=1, show_value=true))
     - ``κ``: $(@bind kappa1 PlutoUI.Slider(0:1:20, default=10, show_value=true))
@@ -269,6 +254,24 @@ floataside(
     """, top = 100
 )
 
+
+# ╔═╡ eacdd772-1869-406a-b601-64cdd6453ec1
+begin
+    data1 = ICMPBData(
+        κ = [kappa1, kappa1]
+    )
+    set_molarity!(data1, M1_avg)
+    data1.conserveions = true
+    data1.χvar = true
+end
+
+# ╔═╡ f8c1c2bd-7466-491e-9132-4f15edcfa4c7
+let
+    clf()
+    X = -10.0e8:1.0e6:10.0e8
+    plot(X, W.(data1.δ0 * X / data1.kT))
+    gcf()
+end
 
 # ╔═╡ a629e8a1-b1d7-42d8-8c17-43475785218e
 begin
@@ -279,6 +282,12 @@ begin
     bfacemask!(grid, [L / 2], [L / 2], 3, tol = 1.0e-10 * nm)
     i3 = grid[BFaceNodes][3][1]
 end
+
+# ╔═╡ 8433319f-2f78-494c-9b2e-a5390cf93b00
+sys1 = ICMPBSystem(grid, data1, valuetype = Float64);
+
+# ╔═╡ 70910bd5-b8ca-4021-9b40-233b50ea5601
+inival1 = unknowns(sys1, data1);
 
 # ╔═╡ f579cf2d-9511-48a8-bf11-7400ef76ee3d
 function plotsol(
@@ -314,9 +323,11 @@ function plotsol(
 
     nv = nodevolumes(sys)
     cm, cp = c[1, :] ⋅ nv / L, c[2, :] ⋅ nv / L
-    M_bulk = sol[6:7, i3] * data.cscale / (ph"N_A" * ufac"mol/dm^3")
-    crm, crp = M_bulk[1], M_bulk[2]
-    ax2.set_title("M_bulk=$(myround.((crm, crp))),  M_avg=$(myround.((cm, cp)))")
+    if data1.conserveions
+        M_bulk = sol[7:8, i3] * data.cscale / (ph"N_A" * ufac"mol/dm^3")
+        crm, crp = M_bulk[1], M_bulk[2]
+        #  ax2.set_title("M_bulk=$(myround.((crm, crp))),  M_avg=$(myround.((cm, cp)))")
+    end
     #  ax2.set_title("M_avg=$(myround.((cm, cp)))")
     ax2.set_xlabel("z/nm")
     ax2.set_ylabel("c/(mol/L)")
@@ -334,30 +345,21 @@ function plotsol(
     ax3r.plot(X / nm, calc_χ(sol, sys), color = "orange", label = "χ")
     ax3.legend(loc = (0.1, 0.1))
     ax3r.legend(loc = (0.8, 0.1))
+    ax3r.set_ylim(0, 100)
     tight_layout()
     return PythonPlot.gcf()
 end
 
 
-# ╔═╡ eacdd772-1869-406a-b601-64cdd6453ec1
-begin
-    data1 = ICMPBData(
-        q = [surfcharge(n1_e), -surfcharge(n1_e)],
-        κ = [kappa1, kappa1]
-    )
-    set_molarity!(data1, M1_avg)
-    data1.conserveions = true
-    data1.χvar = false
-end
-
-# ╔═╡ 8433319f-2f78-494c-9b2e-a5390cf93b00
-sys1 = ICMPBSystem(grid, data1);
-
-# ╔═╡ 70910bd5-b8ca-4021-9b40-233b50ea5601
-inival1 = unknowns(sys1, data1);
-
 # ╔═╡ d2df6ed0-e6f5-4677-b790-bfc40de7fd6a
-sol1 = solve(sys1; inival = inival1, damp_initial = 0.1, verbose = "n", log = true)
+begin
+    Q = surfcharge(n1_e)
+    sol1 = inival1
+    for q in range(0, Q, length = 11)
+        data1.q .= [-q, q]
+        global sol1 = solve(sys1; inival = sol1, verbose = "")
+    end
+end
 
 # ╔═╡ 5f153fe4-4476-401e-8674-b6902213c19e
 md"""
@@ -366,6 +368,12 @@ Newton steps: $(length(history(sol1)))
 
 # ╔═╡ c7a08779-53f3-4fab-8bd4-3dffe6135c3b
 plotsol(sol1, sys1; Mscale)
+
+# ╔═╡ 0e4ec7f0-0aa8-4a32-96a3-40f63f32a12d
+sol1
+
+# ╔═╡ 7d7ebb45-2fb3-40ea-83f2-62d0a240b2db
+@test isa(sol1, AbstractMatrix)
 
 # ╔═╡ Cell order:
 # ╠═60941eaa-1aea-11eb-1277-97b991548781
@@ -380,20 +388,21 @@ plotsol(sol1, sys1; Mscale)
 # ╟─bab7b779-339d-4702-a88a-e6cbf5a72cd0
 # ╟─16a79117-e89b-4478-a571-8c011b5784c1
 # ╟─5f153fe4-4476-401e-8674-b6902213c19e
-# ╟─c7a08779-53f3-4fab-8bd4-3dffe6135c3b
-# ╟─7caea4c4-9783-403c-931c-681f86166a25
-# ╟─65c0b7fa-de4f-454e-ac63-2723d5acc26c
+# ╠═c7a08779-53f3-4fab-8bd4-3dffe6135c3b
+# ╠═0e4ec7f0-0aa8-4a32-96a3-40f63f32a12d
+# ╠═eacdd772-1869-406a-b601-64cdd6453ec1
 # ╟─760e5861-7a6f-41bb-8aec-5e7466c6ec9f
 # ╠═f4facb34-1f4a-432d-8a1e-30299e542bcd
-# ╠═2ef6b8d7-e5f3-4700-8a40-8feffab3569f
+# ╟─2ef6b8d7-e5f3-4700-8a40-8feffab3569f
 # ╠═a629e8a1-b1d7-42d8-8c17-43475785218e
 # ╠═ae11bded-9f67-4004-8786-ed54e1ccb932
-# ╠═eacdd772-1869-406a-b601-64cdd6453ec1
 # ╠═8433319f-2f78-494c-9b2e-a5390cf93b00
 # ╠═70910bd5-b8ca-4021-9b40-233b50ea5601
 # ╠═d2df6ed0-e6f5-4677-b790-bfc40de7fd6a
+# ╠═7d7ebb45-2fb3-40ea-83f2-62d0a240b2db
+# ╠═f8c1c2bd-7466-491e-9132-4f15edcfa4c7
 # ╟─f75f1d3a-47e5-475b-97b1-bb275a510783
 # ╠═dc05f31c-a28e-4470-8916-72dda567b149
 # ╠═f579cf2d-9511-48a8-bf11-7400ef76ee3d
 # ╠═000e87b5-cd1b-4b23-99be-6b7006502312
-# ╠═0a824568-997a-4a48-9fe3-71cc5f9b7471
+# ╟─0a824568-997a-4a48-9fe3-71cc5f9b7471

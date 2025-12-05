@@ -76,7 +76,7 @@ Langevin function $\mathcal L (x)=\coth(x)-\frac1x$.
 
 We set the polarization free energy contribution as
 $$
-\rho\psi^{Pol} = -k_BT\sum_{\alpha} n_\alpha\Lambda\left(\frac{\delta_\alpha |E|}{k_BT}\right)
+  \rho\psi^{Pol} = -k_BT\sum_{\alpha} n_\alpha\Lambda\left(\frac{\delta_\alpha |E|}{k_BT}\right)
 $$
 where $E=\nabla \phi$ is the electric field.
 
@@ -153,7 +153,7 @@ There are two ways to solve for the pressure.
 First, one can use the momentum balance in mechanical equilibrium
 \begin{align}
   \label{eq:momentumbalance}
-  \nabla p = q\nabla \phi - \frac{\varepsilon_0}{2} |E|^2\nabla \chi
+  \nabla p = - q\nabla \phi - \frac{\varepsilon_0}{2} |E|^2\nabla \chi
 \end{align}
 
 for the pressure derived as part of the generalized Nernst-Planck-Poisson
@@ -161,7 +161,7 @@ system \cite{dreyer2013overcoming} and take the divergence as suggested in \cite
 a second order PDE
 \begin{equation}\label{eq:pressurePDE}
   \begin{aligned}
-    - \Delta p & = q\nabla\phi  \; \text{in} \Omega.
+    - \Delta p & = \nabla\cdot (q\nabla\phi) + \nabla\cdot ( \frac{\varepsilon_0}{2} |E|^2\nabla \chi)   \; \text{in} \Omega.
   \end{aligned}
 \end{equation}
 The boundary conditions are:

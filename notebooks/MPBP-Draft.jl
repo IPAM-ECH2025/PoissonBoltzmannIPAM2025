@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.21
+# v0.20.19
 
 using Markdown
 using InteractiveUtils
@@ -143,11 +143,11 @@ inival = unknowns(sys, data)
 # ╔═╡ 14ac1c80-cae5-42f1-b0d3-33aa5bba4de6
 begin
     sol0 = solve(sys; inival, verbose = "n", damp_initial = 0.1)
-    ysum(sys, sol0)
+    Y = ysum(sys, sol0)
 end
 
-# ╔═╡ efb12e12-825b-4dfd-aa10-c6afb304b6bf
-ph"e" / ufac"nm^2"
+# ╔═╡ f9e954e5-d45a-4229-a2f8-e3f407d49faf
+@test all(x -> ≈(x, 1.0, atol = 5.0e-3), Y)
 
 # ╔═╡ 6f037b32-e2a8-4693-b46c-952d6b140e8e
 begin
@@ -159,11 +159,11 @@ end
 # ╔═╡ 1c0145d5-76b1-48c1-8852-de1a2668285a
 molarities = [0.001, 0.01, 0.1, 1]
 
-# ╔═╡ f1c33101-00e6-4af9-9e68-6cdf5fe92b59
-qsweep(sys)
-
 # ╔═╡ a7f2692e-a15f-47b7-8486-8948ce7ab3f7
 result_pp = capscalc(sys, molarities)
+
+# ╔═╡ b155bc1f-e645-4b75-aad7-4b6bb0dc3d27
+@test isa(result_pp, Vector)
 
 # ╔═╡ e114ec0d-13d3-4455-b1c9-d1c5d76671d9
 md"""
@@ -192,7 +192,7 @@ function capsplot(ax, result, title)
         c = (1 - imol * hmol, 0, imol * hmol)
 
         ax.plot(
-            result[imol].voltages, result[imol].dlcaps / (μF / cm^2),
+            result[imol].voltages, -result[imol].dlcaps / (μF / cm^2),
             color = c, label = "$(result[imol].molarity)M"
         )
         ax.scatter(
@@ -209,7 +209,7 @@ let
     res = (600, 200)
     fig = figure(1, figsize = (6, 3))
     ax1 = fig.add_subplot(1, 1, 1)
-    capsplot(ax1, result_pp, "Pressure poisson")
+    capsplot(ax1, result_pp, "Double Layer capacitance")
     tight_layout()
     matplotlib.pyplot.close()
     fig
@@ -234,11 +234,11 @@ end
 # ╠═31a1f686-f0b6-430a-83af-187df411b293
 # ╠═9b16c019-f2ce-4b42-97e1-6d13a463a232
 # ╠═14ac1c80-cae5-42f1-b0d3-33aa5bba4de6
-# ╠═efb12e12-825b-4dfd-aa10-c6afb304b6bf
+# ╠═f9e954e5-d45a-4229-a2f8-e3f407d49faf
 # ╠═6f037b32-e2a8-4693-b46c-952d6b140e8e
 # ╠═1c0145d5-76b1-48c1-8852-de1a2668285a
-# ╠═f1c33101-00e6-4af9-9e68-6cdf5fe92b59
 # ╠═a7f2692e-a15f-47b7-8486-8948ce7ab3f7
+# ╟─b155bc1f-e645-4b75-aad7-4b6bb0dc3d27
 # ╟─e114ec0d-13d3-4455-b1c9-d1c5d76671d9
 # ╟─0b6f33b9-41d4-48fd-8026-8a3bddcc1989
 # ╟─1859db0c-1c1e-4a78-9d4a-e2ec45c3cffc

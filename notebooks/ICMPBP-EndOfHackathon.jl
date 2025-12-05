@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.21
+# v0.20.19
 
 using Markdown
 using InteractiveUtils
@@ -358,6 +358,9 @@ Newton steps: $(length(history(sol1)))
 # ╔═╡ c7a08779-53f3-4fab-8bd4-3dffe6135c3b
 plotsol(sol1, sys1; Mscale)
 
+# ╔═╡ 7b34987e-93cc-4882-ab76-44cf761fbc78
+@test isa(sol1, AbstractMatrix)
+
 # ╔═╡ Cell order:
 # ╠═60941eaa-1aea-11eb-1277-97b991548781
 # ╟─ef660f6f-9de3-4896-a65e-13c60df5de1e
@@ -383,6 +386,7 @@ plotsol(sol1, sys1; Mscale)
 # ╠═8433319f-2f78-494c-9b2e-a5390cf93b00
 # ╠═70910bd5-b8ca-4021-9b40-233b50ea5601
 # ╠═d2df6ed0-e6f5-4677-b790-bfc40de7fd6a
+# ╠═7b34987e-93cc-4882-ab76-44cf761fbc78
 # ╟─f75f1d3a-47e5-475b-97b1-bb275a510783
 # ╠═dc05f31c-a28e-4470-8916-72dda567b149
 # ╠═f579cf2d-9511-48a8-bf11-7400ef76ee3d

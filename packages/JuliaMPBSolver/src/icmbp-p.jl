@@ -141,7 +141,7 @@ begin
         "Concentration scaling parameter"
         cscale::Float64 = ph"N_A"
 
-        "Charge scaleing parameter"
+        "Charge scaling parameter"
         qscale::Float64 = 1.0 / ph"e"
 
         "Electric field scaling parameter"

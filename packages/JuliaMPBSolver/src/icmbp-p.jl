@@ -117,9 +117,6 @@ begin
         "Dielectric susceptibility model flag"
         χvar::Bool = false
 
-        "Dielectric susceptibility model flag"
-        χvarext::Bool = false
-
         "Solvent molar fraction index"
         i0::Int = N + 1
 
@@ -740,11 +737,9 @@ function poisson_and_p_flux!(f, u, edge, data)
         χ1 = susceptibility(uu1, data)
         χ2 = susceptibility(uu2, data)
         χ = (χ1 + χ2) / 2
-        if data.χvarext
-            E1 = u[iE, 1] * Escale
-            E2 = u[iE, 2] * Escale
-            E = (E1 + E2) / 2
-        end
+        E1 = u[iE, 1] * Escale
+        E2 = u[iE, 2] * Escale
+        E = (E1 + E2) / 2
     end
 
     f[iφ] = (1.0 + χ) * data.ε_0 * (u[iφ, 1] - u[iφ, 2]) * data.qscale

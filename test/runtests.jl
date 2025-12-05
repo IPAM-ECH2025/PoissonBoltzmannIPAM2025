@@ -18,11 +18,12 @@ notebooks = [
 
 scripts = [
     "simplecell.jl",
+    "simplecell-bsk.jl",
 ]
 
-# @testset "Notebooks" begin
-#     @testscripts(joinpath(@__DIR__, "..", "notebooks"), notebooks)
-# end
+@testset "Notebooks" begin
+    @testscripts(joinpath(@__DIR__, "..", "notebooks"), notebooks)
+end
 
 @testset "Scripts" begin
     @testscripts(joinpath(@__DIR__, "..", "scripts"), scripts)

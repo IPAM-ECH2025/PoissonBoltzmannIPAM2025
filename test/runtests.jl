@@ -33,6 +33,9 @@ scripts = [
         solution_reference, X_reference, nv_reference, ε_r_reference = load(script_name * "-reference.jld2", "solution", "X", "nv", "ε_r")
 
         @test solution ≈ solution_reference
+        @test X ≈ X_reference
+        @test nv ≈ nv_reference
+        @test ε_r ≈ ε_r_reference
 
         rm(script_name * ".jld2")
     end

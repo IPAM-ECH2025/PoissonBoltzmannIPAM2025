@@ -71,8 +71,12 @@ begin
     halfcelldd = AppliedPotentialHalfCell(gridhalf, datavhalf, dielectric_decrement = true, valuetype = Float64)
 end;
 
+
 # ╔═╡ dd3c4807-3972-4e9c-a44a-3347b065d01c
-plotcells(halfcell, halfcelldd)
+p3 = plotcells(halfcell, halfcelldd); p3
+
+# ╔═╡ 935f8897-4d68-447b-8316-1a0fe0285d54
+@test isa(p3, Figure)
 
 # ╔═╡ d07ac411-7985-4b5f-a88b-8aa4037b7d65
 function makecolors(V)
@@ -81,7 +85,7 @@ function makecolors(V)
 end
 
 # ╔═╡ 2cf54b71-d99b-40bd-b9a6-0a7cf919614b
-let
+p1 = let
     molarities = [0.001, 0.01, 0.1, 1]
     φ_max = 0.5
     colors = makecolors(molarities)
@@ -113,10 +117,13 @@ let
     savefig(draftresultsdir("halfcell_dlcap_M"), dpi = 600)
 
     gcf()
-end
+end; p1
+
+# ╔═╡ 52d5fb3c-072d-4a6e-a392-7e236b4ec933
+@test isa(p1, Figure)
 
 # ╔═╡ cc8e8ba6-4cc6-4e8a-bbd6-07b9f61c2ef5
-let
+p2 = let
     kappas = [1, 5, 10, 20]
     φ_max = 0.5
     M = 0.1
@@ -148,7 +155,10 @@ let
     savefig(draftresultsdir("halfcell_dlcap_kappa"), dpi = 600)
 
     gcf()
-end
+end; p2
+
+# ╔═╡ 48896662-d87f-4606-9118-6471184b4dc7
+@test isa(p2, Figure)
 
 # ╔═╡ 8af12f1c-d35b-4cc9-8185-1bb5adbb69e8
 html"""<hr>"""
@@ -239,8 +249,11 @@ restart_button() = html"""
 # ╠═b24b7e23-61ea-41fc-a345-286e904c042b
 # ╠═1bb47749-edde-4bee-be9f-059a7652b354
 # ╠═2cf54b71-d99b-40bd-b9a6-0a7cf919614b
+# ╠═52d5fb3c-072d-4a6e-a392-7e236b4ec933
 # ╠═cc8e8ba6-4cc6-4e8a-bbd6-07b9f61c2ef5
+# ╠═48896662-d87f-4606-9118-6471184b4dc7
 # ╠═dd3c4807-3972-4e9c-a44a-3347b065d01c
+# ╠═935f8897-4d68-447b-8316-1a0fe0285d54
 # ╠═d07ac411-7985-4b5f-a88b-8aa4037b7d65
 # ╟─8af12f1c-d35b-4cc9-8185-1bb5adbb69e8
 # ╟─784b4c3e-bb2a-4940-a83a-ed5e5898dfd4

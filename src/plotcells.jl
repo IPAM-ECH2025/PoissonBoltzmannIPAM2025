@@ -47,7 +47,6 @@ function plotcells(
         set_q!(celldd, surfcharge(_q))
         solv = solve(celldd, inival = solv, damp_initial = 0.1)
     end
-
     cv = calc_cmol(solv, celldd)
     c0v = calc_c0mol(solv, celldd)
     φv = get_φ(solv, celldd)

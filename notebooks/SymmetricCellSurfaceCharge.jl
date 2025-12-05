@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.21
+# v0.20.19
 
 using Markdown
 using InteractiveUtils
@@ -88,10 +88,16 @@ begin
 end;
 
 # ╔═╡ 6aae7cca-01f1-45be-9d4b-a3942bd042f3
-plotcells(largecell, largecelldd; figname = "largecell")
+p = plotcells(largecell, largecelldd; figname = "largecell");p
+
+# ╔═╡ 27c9e166-df00-4a30-a6ba-32e9a071136b
+@test isa(p, Figure)
 
 # ╔═╡ 773e6c0a-08ea-47b2-8924-42759f944c6b
-plotcells(smallcell, smallcelldd, figname = "smallcell")
+p2 = plotcells(smallcell, smallcelldd, figname = "smallcell");p2
+
+# ╔═╡ ceaff98b-1ba6-43b3-bd2f-0e7fe585f428
+@test isa(p2, Figure)
 
 # ╔═╡ 8af12f1c-d35b-4cc9-8185-1bb5adbb69e8
 html"""<hr>"""
@@ -184,7 +190,9 @@ restart_button() = html"""
 # ╠═b24b7e23-61ea-41fc-a345-286e904c042b
 # ╠═1bb47749-edde-4bee-be9f-059a7652b354
 # ╠═6aae7cca-01f1-45be-9d4b-a3942bd042f3
+# ╠═27c9e166-df00-4a30-a6ba-32e9a071136b
 # ╠═773e6c0a-08ea-47b2-8924-42759f944c6b
+# ╠═ceaff98b-1ba6-43b3-bd2f-0e7fe585f428
 # ╟─8af12f1c-d35b-4cc9-8185-1bb5adbb69e8
 # ╟─784b4c3e-bb2a-4940-a83a-ed5e5898dfd4
 # ╟─afe4745f-f9f1-4e23-8735-cbec6fb79c41

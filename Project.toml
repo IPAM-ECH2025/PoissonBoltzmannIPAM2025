@@ -11,11 +11,13 @@ DynamicQuantities = "06fc5a27-2a28-4c7c-a15d-362465fb6821"
 ExtendableGrids = "cfc395e8-590f-11e8-1f13-43a2532b2fa8"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 HypertextLiteral = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
+InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
 JuliaMPBSolver = "d8b18f01-5396-498d-b34d-247825c18ff0"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 LessUnitful = "f29f6376-6e90-4d80-80c9-fb8ec61203d5"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Markdown = "d6f4376e-aef5-505a-96c1-9c027394607a"
 NLsolve = "2774e3e8-f4cf-5e23-947b-6d7e65073b56"
 Pluto = "c3e4b0f8-55cb-11ea-2926-15256bba5781"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
@@ -33,12 +35,15 @@ JuliaMPBSolver = {path = "packages/JuliaMPBSolver"}
 [compat]
 DoubleFloats = "1"
 DynamicQuantities = "1.10.0"
+ExampleJuggler = "2.4.0"
 ExtendableGrids = "1"
 ForwardDiff = "1"
 HypertextLiteral = "0.9"
+InteractiveUtils = "1.11.0"
 Interpolations = "0.16"
 LaTeXStrings = "1.0.1"
 LessUnitful = "1"
+Markdown = "1.11.0"
 PlutoUI = "0.7"
 PreallocationTools = "0.4"
 PythonCall = "0.9"
@@ -48,9 +53,10 @@ VoronoiFVM = "2.14"
 julia = "1.11"
 
 [extras]
+ExampleJuggler = "3bbe58f8-ed81-4c4e-a134-03e85fcf4a1a"
 JuliaMPBSolver = "d8b18f01-5396-498d-b34d-247825c18ff0"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Pkg", "Test", "JuliaMPBSolver"]
+test = ["Pkg", "Test", "JuliaMPBSolver", "ExampleJuggler"]

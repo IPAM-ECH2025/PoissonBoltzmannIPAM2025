@@ -94,7 +94,7 @@ begin
         n_avg::Vector{Float64} = fill(molarity, N)
 
         "Surface charges"
-        q::Float64 = 0 * ufac"C/m^2"
+        q::Vector{Float64} = fill(0 * ufac"C/m^2", 2)
 
         "Applied potential"
         φ::Float64 = 0 * ufac"C/m^2"
@@ -186,8 +186,13 @@ md"""
 """
 
 # ╔═╡ 4929c105-4c01-4c83-ad2f-2056a8c51d29
-function apply_charge!(data::ICMPBData, q)
+function apply_charge!(data::ICMPBData, q::Vector)
     data.q = q
+    return data
+end
+
+function apply_charge!(data::ICMPBData, q::Number)
+    data.q = [-q, q]
     return data
 end
 
@@ -759,8 +764,8 @@ Boundary condition callback. The Dirichlet condition for the pressure in the mid
 # ╔═╡ 743b9a7a-d6ac-4da0-8538-2045d965b547
 function bcondition!(y, u, bnode, data)
     (; iφ, ip) = data
-    boundary_neumann!(y, u, bnode, species = iφ, region = 2, value = data.q * data.qscale)
-    boundary_neumann!(y, u, bnode, species = iφ, region = 1, value = -data.q * data.qscale)
+    boundary_neumann!(y, u, bnode, species = iφ, region = 2, value = data.q[2] * data.qscale)
+    boundary_neumann!(y, u, bnode, species = iφ, region = 1, value = data.q[1] * data.qscale)
     boundary_dirichlet!(y, u, bnode, species = ip, region = 3, value = 0)
     return nothing
 end

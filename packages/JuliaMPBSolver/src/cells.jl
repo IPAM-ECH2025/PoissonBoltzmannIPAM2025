@@ -51,7 +51,7 @@ get_c0(sol, cell::AbstractMPBCell) = sol[mpbdata(cell).i0, :]
 set_κ!(cell::AbstractMPBCell, κ::Number) = mpbdata(cell).κ = [κ, κ]
 set_molarity!(cell::AbstractMPBCell, M) = set_molarity!(mpbdata(cell), M)
 set_φ!(cell::AbstractMPBCell, φ::Number) = mpbdata(cell).φ = φ
-set_q!(cell::AbstractMPBCell, q::Number) = mpbdata(cell).q = q
+set_q!(cell::AbstractMPBCell, q::Number) = mpbdata(cell).q .= [-q, q]
 
 function SciMLBase.solve(cell::AbstractMPBCell; inival = unknowns(cell), verbose = "", damp_initial = 0.1, kwargs...)
     sys = cell.sys
@@ -142,8 +142,8 @@ end
 function symmcell_surfacecharge_bcondition!(y, u, bnode, data)
     (; iφ, ip) = data
     (; iφ, ip) = data
-    boundary_neumann!(y, u, bnode, species = iφ, region = 2, value = data.q * data.qscale)
-    boundary_neumann!(y, u, bnode, species = iφ, region = 1, value = -data.q * data.qscale)
+    boundary_neumann!(y, u, bnode, species = iφ, region = 2, value = data.q[2] * data.qscale)
+    boundary_neumann!(y, u, bnode, species = iφ, region = 1, value = data.q[1] * data.qscale)
     boundary_dirichlet!(y, u, bnode, species = ip, region = 3, value = 0)
     return nothing
 end

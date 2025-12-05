@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.19
+# v0.20.21
 
 using Markdown
 using InteractiveUtils
@@ -26,10 +26,8 @@ begin
     using ExtendableGrids
     using LinearAlgebra
     using LessUnitful
-	using DoubleFloats
     using Test
     using PythonPlot
-    using Colors
     using JuliaMPBSolver.ICMPBP: ICMPBData, ICMPBSystem, L_Debye, set_molarity!, dlcap0, DerivedData, apply_charge!, ysum, qsweep, capscalc, calc_cmol, calc_c0mol, calc_χ, W
 end
 
@@ -286,7 +284,7 @@ begin
 end
 
 # ╔═╡ 8433319f-2f78-494c-9b2e-a5390cf93b00
-sys1 = ICMPBSystem(grid, data1, valuetype=Double64);
+sys1 = ICMPBSystem(grid, data1, valuetype=Float64);
 
 # ╔═╡ 70910bd5-b8ca-4021-9b40-233b50ea5601
 inival1 = unknowns(sys1, data1);
@@ -358,8 +356,8 @@ begin
 	Q = surfcharge(n1_e)
 	sol1=inival1
 	for q in range(0, Q, length=11)
-		data1.q=q
-		sol1 = solve(sys1; inival = sol1,verbose="")
+		data1.q.=[-q,q]
+		global sol1 = solve(sys1; inival = sol1,verbose="")
 	end
 end
 
@@ -373,6 +371,9 @@ plotsol(sol1, sys1; Mscale)
 
 # ╔═╡ 0e4ec7f0-0aa8-4a32-96a3-40f63f32a12d
 sol1
+
+# ╔═╡ 7d7ebb45-2fb3-40ea-83f2-62d0a240b2db
+@test isa(sol1, AbstractMatrix)
 
 # ╔═╡ Cell order:
 # ╠═60941eaa-1aea-11eb-1277-97b991548781
@@ -398,6 +399,7 @@ sol1
 # ╠═8433319f-2f78-494c-9b2e-a5390cf93b00
 # ╠═70910bd5-b8ca-4021-9b40-233b50ea5601
 # ╠═d2df6ed0-e6f5-4677-b790-bfc40de7fd6a
+# ╠═7d7ebb45-2fb3-40ea-83f2-62d0a240b2db
 # ╠═f8c1c2bd-7466-491e-9132-4f15edcfa4c7
 # ╟─f75f1d3a-47e5-475b-97b1-bb275a510783
 # ╠═dc05f31c-a28e-4470-8916-72dda567b149

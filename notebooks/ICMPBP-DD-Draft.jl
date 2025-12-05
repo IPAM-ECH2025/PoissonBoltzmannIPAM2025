@@ -267,10 +267,10 @@ end
 
 # ╔═╡ f8c1c2bd-7466-491e-9132-4f15edcfa4c7
 let
-	clf()
-	X=-10.0e8:1.0e6:10.0e8
-	plot(X, W.(data1.δ0*X/data1.kT))
-	gcf()
+    clf()
+    X = -10.0e8:1.0e6:10.0e8
+    plot(X, W.(data1.δ0 * X / data1.kT))
+    gcf()
 end
 
 # ╔═╡ a629e8a1-b1d7-42d8-8c17-43475785218e
@@ -284,7 +284,7 @@ begin
 end
 
 # ╔═╡ 8433319f-2f78-494c-9b2e-a5390cf93b00
-sys1 = ICMPBSystem(grid, data1, valuetype=Float64);
+sys1 = ICMPBSystem(grid, data1, valuetype = Float64);
 
 # ╔═╡ 70910bd5-b8ca-4021-9b40-233b50ea5601
 inival1 = unknowns(sys1, data1);
@@ -323,11 +323,11 @@ function plotsol(
 
     nv = nodevolumes(sys)
     cm, cp = c[1, :] ⋅ nv / L, c[2, :] ⋅ nv / L
-	if data1.conserveions
-    M_bulk = sol[7:8, i3] * data.cscale / (ph"N_A" * ufac"mol/dm^3")
-    crm, crp = M_bulk[1], M_bulk[2]
-  #  ax2.set_title("M_bulk=$(myround.((crm, crp))),  M_avg=$(myround.((cm, cp)))")
-	end
+    if data1.conserveions
+        M_bulk = sol[7:8, i3] * data.cscale / (ph"N_A" * ufac"mol/dm^3")
+        crm, crp = M_bulk[1], M_bulk[2]
+        #  ax2.set_title("M_bulk=$(myround.((crm, crp))),  M_avg=$(myround.((cm, cp)))")
+    end
     #  ax2.set_title("M_avg=$(myround.((cm, cp)))")
     ax2.set_xlabel("z/nm")
     ax2.set_ylabel("c/(mol/L)")
@@ -353,12 +353,12 @@ end
 
 # ╔═╡ d2df6ed0-e6f5-4677-b790-bfc40de7fd6a
 begin
-	Q = surfcharge(n1_e)
-	sol1=inival1
-	for q in range(0, Q, length=11)
-		data1.q.=[-q,q]
-		global sol1 = solve(sys1; inival = sol1,verbose="")
-	end
+    Q = surfcharge(n1_e)
+    sol1 = inival1
+    for q in range(0, Q, length = 11)
+        data1.q .= [-q, q]
+        global sol1 = solve(sys1; inival = sol1, verbose = "")
+    end
 end
 
 # ╔═╡ 5f153fe4-4476-401e-8674-b6902213c19e

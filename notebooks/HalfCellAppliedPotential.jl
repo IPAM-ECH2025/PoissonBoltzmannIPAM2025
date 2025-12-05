@@ -15,15 +15,15 @@ begin
     using LinearAlgebra
     using LessUnitful
     using Test
-	using DoubleFloats
+    using DoubleFloats
     using PythonPlot
-	using PythonCall
+    using PythonCall
     using PythonPlot: pyplot
     using LaTeXStrings
     using Colors
     using JuliaMPBSolver.ICMPBP: ICMPBP, ICMPBData, AppliedPotentialHalfCell, set_molarity!, calc_cmol, calc_c0mol, calc_χ, get_E, get_φ, get_p, get_c0,
         set_κ!, set_φ!
-	using DrWatson, PoissonBoltzmannIPAM2025
+    using DrWatson, PoissonBoltzmannIPAM2025
 
 end
 
@@ -61,14 +61,14 @@ All values are given with respect to SI basic units (m, kg, s, V, A)
 """
 
 # ╔═╡ b24b7e23-61ea-41fc-a345-286e904c042b
-datavhalf = ICMPBData(χvar=true)
+datavhalf = ICMPBData(χvar = true)
 
 # ╔═╡ 1bb47749-edde-4bee-be9f-059a7652b354
 begin
-	datavhalf.Escale=1
-	halfcell = AppliedPotentialHalfCell(gridhalf, datavhalf, dielectric_decrement=false, valuetype=Float64);
+    datavhalf.Escale = 1
+    halfcell = AppliedPotentialHalfCell(gridhalf, datavhalf, dielectric_decrement = false, valuetype = Float64)
 
-	halfcelldd = AppliedPotentialHalfCell(gridhalf, datavhalf, dielectric_decrement=true, valuetype=Float64);
+    halfcelldd = AppliedPotentialHalfCell(gridhalf, datavhalf, dielectric_decrement = true, valuetype = Float64)
 end;
 
 # ╔═╡ dd3c4807-3972-4e9c-a44a-3347b065d01c
@@ -83,7 +83,7 @@ end
 # ╔═╡ 2cf54b71-d99b-40bd-b9a6-0a7cf919614b
 let
     molarities = [0.001, 0.01, 0.1, 1]
-	φ_max=0.5
+    φ_max = 0.5
     colors = makecolors(molarities)
     pyplot.close()
     clf()
@@ -97,28 +97,28 @@ let
         M = molarities[i]
         set_molarity!(halfcell, M)
 
-		volts, dlcaps = ICMPBP.dlcapsweep(halfcell; φ_max)
-        plot(volts, dlcaps / (μF / cm^2), color = colors[i],  linestyle="--")
+        volts, dlcaps = ICMPBP.dlcapsweep(halfcell; φ_max)
+        plot(volts, dlcaps / (μF / cm^2), color = colors[i], linestyle = "--")
 
         set_molarity!(halfcelldd, M)
-        volts, dlcaps = ICMPBP.dlcapsweep(halfcelldd; φ_max, damp_initial=0.1)
-  		plot(volts, dlcaps / (μF / cm^2), label = "M=$(M)", color = colors[i])
+        volts, dlcaps = ICMPBP.dlcapsweep(halfcelldd; φ_max, damp_initial = 0.1)
+        plot(volts, dlcaps / (μF / cm^2), label = "M=$(M)", color = colors[i])
     end
     ax.set_xlabel("U/V")
     ax.set_ylabel(L"C_{dl}/(μF/cm^2)")
     ax.legend()
     ax.grid()
-		tight_layout()
+    tight_layout()
 
-	savefig(draftresultsdir("halfcell_dlcap_M"), dpi = 600)
+    savefig(draftresultsdir("halfcell_dlcap_M"), dpi = 600)
 
     gcf()
 end
 
 # ╔═╡ cc8e8ba6-4cc6-4e8a-bbd6-07b9f61c2ef5
 let
-    kappas = [1,5, 10, 20]
-	φ_max=0.5
+    kappas = [1, 5, 10, 20]
+    φ_max = 0.5
     M = 0.1
     colors = makecolors(kappas)
     pyplot.close()
@@ -133,19 +133,19 @@ let
         set_κ!(halfcell, κ)
         set_κ!(halfcelldd, κ)
 
-        volts, dlcaps = ICMPBP.dlcapsweep(halfcelldd;φ_max, damp_initial=0.1)
+        volts, dlcaps = ICMPBP.dlcapsweep(halfcelldd; φ_max, damp_initial = 0.1)
         plot(volts, dlcaps / (μF / cm^2), label = "κ=$(κ)", color = colors[i])
 
         volts, dlcaps = ICMPBP.dlcapsweep(halfcell; φ_max)
-        plot(volts, dlcaps / (μF / cm^2), color = colors[i],linestyle = "--")
+        plot(volts, dlcaps / (μF / cm^2), color = colors[i], linestyle = "--")
 
-	end
+    end
     ax.set_xlabel("U/V")
     ax.set_ylabel(L"C_{dl}/(μF/cm^2)")
     ax.legend()
     ax.grid()
-	tight_layout()
-		savefig(draftresultsdir("halfcell_dlcap_kappa"), dpi = 600)
+    tight_layout()
+    savefig(draftresultsdir("halfcell_dlcap_kappa"), dpi = 600)
 
     gcf()
 end

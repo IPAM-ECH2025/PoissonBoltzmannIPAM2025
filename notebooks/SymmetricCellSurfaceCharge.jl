@@ -22,7 +22,7 @@ begin
     using LaTeXStrings
     using Colors
     using DrWatson, PoissonBoltzmannIPAM2025
-    using JuliaMPBSolver.ICMPBP: ICMPBP, ICMPBData, SurfaceChargedSymmetricCell,AbstractSymmetricCell, set_molarity!, calc_cmol, calc_c0mol, calc_χ, get_E, get_φ, get_p, get_c0,
+    using JuliaMPBSolver.ICMPBP: ICMPBP, ICMPBData, SurfaceChargedSymmetricCell, AbstractSymmetricCell, set_molarity!, calc_cmol, calc_c0mol, calc_χ, get_E, get_φ, get_p, get_c0,
         set_κ!, set_q!
 end
 
@@ -88,10 +88,10 @@ begin
 end;
 
 # ╔═╡ 6aae7cca-01f1-45be-9d4b-a3942bd042f3
-plotcells(largecell, largecelldd; figname="largecell")
+plotcells(largecell, largecelldd; figname = "largecell")
 
 # ╔═╡ 773e6c0a-08ea-47b2-8924-42759f944c6b
-plotcells(smallcell, smallcelldd, figname="smallcell")
+plotcells(smallcell, smallcelldd, figname = "smallcell")
 
 # ╔═╡ 8af12f1c-d35b-4cc9-8185-1bb5adbb69e8
 html"""<hr>"""

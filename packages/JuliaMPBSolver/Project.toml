@@ -1,6 +1,6 @@
 name = "JuliaMPBSolver"
 uuid = "d8b18f01-5396-498d-b34d-247825c18ff0"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["Jürgen Fuhrmann <juergen-fuhrmann@web.de>"]
 
 [deps]

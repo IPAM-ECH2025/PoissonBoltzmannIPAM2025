@@ -265,7 +265,6 @@ begin
     set_molarity!(data1, M1_avg)
     data1.conserveions = true
     data1.χvar = true
-    data1.χvarext = true
 end
 
 # ╔═╡ f8c1c2bd-7466-491e-9132-4f15edcfa4c7

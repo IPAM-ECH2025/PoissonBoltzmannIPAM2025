@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.19
+# v0.20.21
 
 using Markdown
 using InteractiveUtils
@@ -15,21 +15,20 @@ begin
     using LinearAlgebra
     using LessUnitful
     using Test
-	using DoubleFloats
+    using DoubleFloats
     using PythonPlot
-	using PythonCall
+    using PythonCall
     using PythonPlot: pyplot
     using LaTeXStrings
     using Colors
-    using JuliaMPBSolver.ICMPBP: ICMPBP, ICMPBData, AppliedPotentialHalfCell, set_molarity!, calc_cmol, calc_c0mol, calc_χ, get_E, get_φ, get_p, get_c0,
-        set_κ!, set_φ!
-	using DrWatson, PoissonBoltzmannIPAM2025
-
+    using DrWatson, PoissonBoltzmannIPAM2025
+    using JuliaMPBSolver.ICMPBP: ICMPBP, ICMPBData, SurfaceChargedSymmetricCell,AbstractSymmetricCell, set_molarity!, calc_cmol, calc_c0mol, calc_χ, get_E, get_φ, get_p, get_c0,
+        set_κ!, set_q!
 end
 
 # ╔═╡ af6ae00d-f032-4743-878b-e575466b6e84
 md"""
-# Half cell with applied potential
+# Symmetric cell with ion conservation and applied charge
 """
 
 # ╔═╡ 87d66a6f-b40d-4d76-afc6-4b4f086e80a4
@@ -45,15 +44,30 @@ end
 
 # ╔═╡ 087614cc-a4f6-4867-a6bd-201d1f2a7fc2
 begin
-    const L = 10nm
+    const Ll = 10nm
+    const Ls = 2nm
     const n = 101
 end
 
 # ╔═╡ c7a51cb9-790a-4818-95d7-c32f2252e8b3
-Xhalf = (10 .^ range(-3, 1, length = 101)) * nm;
+Xl = range(0, Ll, length = n)
+
+# ╔═╡ d87781e8-af89-41d0-a56d-94744406042d
+Xs = range(0, Ls, length = n)
 
 # ╔═╡ 4ef3d13c-2f57-4575-bc88-c8092ae6910f
-gridhalf = simplexgrid(Xhalf)
+begin
+    gridl = simplexgrid(Xl)
+    bfacemask!(gridl, [Ll / 2], [Ll / 2], 3, tol = 1.0e-10 * nm)
+
+end
+
+# ╔═╡ 4d78d81c-f1a3-4386-adce-2a7fa1e3eaef
+begin
+    grids = simplexgrid(Xs)
+    bfacemask!(grids, [Ls / 2], [Ls / 2], 3, tol = 1.0e-10 * nm)
+
+end
 
 # ╔═╡ 3a99a9bb-7862-41f8-a535-d3c580da6909
 md"""
@@ -61,94 +75,23 @@ All values are given with respect to SI basic units (m, kg, s, V, A)
 """
 
 # ╔═╡ b24b7e23-61ea-41fc-a345-286e904c042b
-datavhalf = ICMPBData(χvar=true)
+data = ICMPBData(χvar = true, conserveions = true)
 
 # ╔═╡ 1bb47749-edde-4bee-be9f-059a7652b354
 begin
-	datavhalf.Escale=1
-	halfcell = AppliedPotentialHalfCell(gridhalf, datavhalf, dielectric_decrement=false, valuetype=Float64);
+    smallcell = SurfaceChargedSymmetricCell(grids, data, dielectric_decrement = false)
+    largecell = SurfaceChargedSymmetricCell(gridl, data, dielectric_decrement = false)
 
-	halfcelldd = AppliedPotentialHalfCell(gridhalf, datavhalf, dielectric_decrement=true, valuetype=Float64);
+    smallcelldd = SurfaceChargedSymmetricCell(grids, data, dielectric_decrement = true)
+    largecelldd = SurfaceChargedSymmetricCell(gridl, data, dielectric_decrement = true)
+
 end;
 
-# ╔═╡ dd3c4807-3972-4e9c-a44a-3347b065d01c
-plotcells(halfcell, halfcelldd)
+# ╔═╡ 6aae7cca-01f1-45be-9d4b-a3942bd042f3
+plotcells(largecell, largecelldd; figname="largecell")
 
-# ╔═╡ d07ac411-7985-4b5f-a88b-8aa4037b7d65
-function makecolors(V)
-    h = 0.5 / length(V)
-    return colors = [ (i * h, 0, 1 - i * h) for i in 1:length(V) ]
-end
-
-# ╔═╡ 2cf54b71-d99b-40bd-b9a6-0a7cf919614b
-let
-    molarities = [0.001, 0.01, 0.1, 1]
-	φ_max=0.5
-    colors = makecolors(molarities)
-    pyplot.close()
-    clf()
-    fig, ax = pyplot.subplots(1, 1)
-    fig.set_size_inches(600 / 100, 300 / 100)
-    κ = 10
-    ax.set_title("Double layer capacitance, κ=$(κ)\n Dashed: witghout dielectric decrement")
-    set_κ!(halfcell, κ)
-    set_κ!(halfcelldd, κ)
-    for i in 1:length(molarities)
-        M = molarities[i]
-        set_molarity!(halfcell, M)
-
-		volts, dlcaps = ICMPBP.dlcapsweep(halfcell; φ_max)
-        plot(volts, dlcaps / (μF / cm^2), color = colors[i],  linestyle="--")
-
-        set_molarity!(halfcelldd, M)
-        volts, dlcaps = ICMPBP.dlcapsweep(halfcelldd; φ_max, damp_initial=0.1)
-  		plot(volts, dlcaps / (μF / cm^2), label = "M=$(M)", color = colors[i])
-    end
-    ax.set_xlabel("U/V")
-    ax.set_ylabel(L"C_{dl}/(μF/cm^2)")
-    ax.legend()
-    ax.grid()
-		tight_layout()
-
-	savefig(draftresultsdir("halfcell_dlcap_M"), dpi = 600)
-
-    gcf()
-end
-
-# ╔═╡ cc8e8ba6-4cc6-4e8a-bbd6-07b9f61c2ef5
-let
-    kappas = [1,5, 10, 20]
-	φ_max=0.5
-    M = 0.1
-    colors = makecolors(kappas)
-    pyplot.close()
-    clf()
-    fig, ax = pyplot.subplots(1, 1)
-    fig.set_size_inches(600 / 100, 300 / 100)
-    ax.set_title("Double layer capacitance, M=$(M)\n Dashed: without dielectric decrement")
-    set_molarity!(halfcell, M)
-    set_molarity!(halfcelldd, M)
-    for i in 1:length(kappas)
-        κ = kappas[i]
-        set_κ!(halfcell, κ)
-        set_κ!(halfcelldd, κ)
-
-        volts, dlcaps = ICMPBP.dlcapsweep(halfcelldd;φ_max, damp_initial=0.1)
-        plot(volts, dlcaps / (μF / cm^2), label = "κ=$(κ)", color = colors[i])
-
-        volts, dlcaps = ICMPBP.dlcapsweep(halfcell; φ_max)
-        plot(volts, dlcaps / (μF / cm^2), color = colors[i],linestyle = "--")
-
-	end
-    ax.set_xlabel("U/V")
-    ax.set_ylabel(L"C_{dl}/(μF/cm^2)")
-    ax.legend()
-    ax.grid()
-	tight_layout()
-		savefig(draftresultsdir("halfcell_dlcap_kappa"), dpi = 600)
-
-    gcf()
-end
+# ╔═╡ 773e6c0a-08ea-47b2-8924-42759f944c6b
+plotcells(smallcell, smallcelldd, figname="smallcell")
 
 # ╔═╡ 8af12f1c-d35b-4cc9-8185-1bb5adbb69e8
 html"""<hr>"""
@@ -234,14 +177,14 @@ restart_button() = html"""
 # ╠═87d66a6f-b40d-4d76-afc6-4b4f086e80a4
 # ╠═087614cc-a4f6-4867-a6bd-201d1f2a7fc2
 # ╠═c7a51cb9-790a-4818-95d7-c32f2252e8b3
+# ╠═d87781e8-af89-41d0-a56d-94744406042d
 # ╠═4ef3d13c-2f57-4575-bc88-c8092ae6910f
+# ╠═4d78d81c-f1a3-4386-adce-2a7fa1e3eaef
 # ╟─3a99a9bb-7862-41f8-a535-d3c580da6909
 # ╠═b24b7e23-61ea-41fc-a345-286e904c042b
 # ╠═1bb47749-edde-4bee-be9f-059a7652b354
-# ╠═2cf54b71-d99b-40bd-b9a6-0a7cf919614b
-# ╠═cc8e8ba6-4cc6-4e8a-bbd6-07b9f61c2ef5
-# ╠═dd3c4807-3972-4e9c-a44a-3347b065d01c
-# ╠═d07ac411-7985-4b5f-a88b-8aa4037b7d65
+# ╠═6aae7cca-01f1-45be-9d4b-a3942bd042f3
+# ╠═773e6c0a-08ea-47b2-8924-42759f944c6b
 # ╟─8af12f1c-d35b-4cc9-8185-1bb5adbb69e8
 # ╟─784b4c3e-bb2a-4940-a83a-ed5e5898dfd4
 # ╟─afe4745f-f9f1-4e23-8735-cbec6fb79c41

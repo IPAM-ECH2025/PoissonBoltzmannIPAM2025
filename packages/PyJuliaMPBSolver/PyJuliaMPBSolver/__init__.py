@@ -9,6 +9,12 @@ def _import_juliacall():
     import juliacall
 
 
+def _juliapkg_resolve():
+    from juliapkg import resolve
+
+    resolve()
+
+
 _import_juliacall()
 
 from juliacall import Main as jl
@@ -20,5 +26,7 @@ JuliaMPBSolver = jl.JuliaMPBSolver
 
 jl.seval("using Pkg: Pkg")
 Pkg = jl.Pkg
+
+_juliapkg_resolve()
 
 from .core import JuliaMPBSolver

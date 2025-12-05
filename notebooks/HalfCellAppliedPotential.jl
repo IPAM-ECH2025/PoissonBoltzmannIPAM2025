@@ -105,7 +105,7 @@ p1 = let
         plot(volts, dlcaps / (μF / cm^2), color = colors[i], linestyle = "--")
 
         set_molarity!(halfcelldd, M)
-        volts, dlcaps = ICMPBP.dlcapsweep(halfcelldd; φ_max, damp_initial = 0.1)
+        volts, dlcaps = ICMPBP.dlcapsweep(halfcelldd; φ_max, damp_initial = 0.01)
         plot(volts, dlcaps / (μF / cm^2), label = "M=$(M)", color = colors[i])
     end
     ax.set_xlabel("U/V")
@@ -140,7 +140,7 @@ p2 = let
         set_κ!(halfcell, κ)
         set_κ!(halfcelldd, κ)
 
-        volts, dlcaps = ICMPBP.dlcapsweep(halfcelldd; φ_max, damp_initial = 0.1)
+        volts, dlcaps = ICMPBP.dlcapsweep(halfcelldd; φ_max, damp_initial = 0.01)
         plot(volts, dlcaps / (μF / cm^2), label = "κ=$(κ)", color = colors[i])
 
         volts, dlcaps = ICMPBP.dlcapsweep(halfcell; φ_max)

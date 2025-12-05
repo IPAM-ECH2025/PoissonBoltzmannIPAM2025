@@ -114,7 +114,7 @@ function plotcells(
     ax3r.set_yticks(range(0, 100, length = 5))
 
     tight_layout()
-    savefig(draftresultsdir(figname), dpi = 600)
+    !haskey(ENV, "CI") && savefig(draftresultsdir(figname), dpi = 600)
     return gcf()
 
 end
@@ -231,7 +231,7 @@ function plotcells(
     ax3r.set_yticks(range(0, 100, length = 5))
 
     tight_layout()
-    savefig(draftresultsdir(figname), dpi = 600)
+    !haskey(ENV, "CI") && savefig(draftresultsdir(figname), dpi = 600)
     return gcf()
 
 end

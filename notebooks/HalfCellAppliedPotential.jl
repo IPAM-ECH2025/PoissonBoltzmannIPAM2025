@@ -114,7 +114,7 @@ p1 = let
     ax.grid()
     tight_layout()
 
-    savefig(draftresultsdir("halfcell_dlcap_M"), dpi = 600)
+    !haskey(ENV, "CI") && savefig(draftresultsdir("halfcell_dlcap_M"), dpi = 600)
 
     gcf()
 end; p1
@@ -152,7 +152,7 @@ p2 = let
     ax.legend()
     ax.grid()
     tight_layout()
-    savefig(draftresultsdir("halfcell_dlcap_kappa"), dpi = 600)
+    !haskey(ENV, "CI") && savefig(draftresultsdir("halfcell_dlcap_kappa"), dpi = 600)
 
     gcf()
 end; p2

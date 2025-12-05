@@ -3,3 +3,14 @@ Manifest*.toml
 __pycache__
 condaenv
 **/venv
+draftresults
+draft.pdf
+*.nav
+*.snm
+*.toc
+*.aux
+*.log
+*.bbl
+*.blg
+*.out
+*.tdo

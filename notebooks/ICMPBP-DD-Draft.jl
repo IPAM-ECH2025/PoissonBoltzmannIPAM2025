@@ -28,7 +28,7 @@ begin
     using LessUnitful
     using Test
     using PythonPlot
-    using JuliaMPBSolver.ICMPBP: ICMPBData, ICMPBSystem, L_Debye, set_molarity!, dlcap0, DerivedData, apply_charge!, ysum, qsweep, capscalc, calc_cmol, calc_c0mol, calc_χ, W
+    using JuliaMPBSolver.ICMPBP: ICMPBData, ICMPBSystem, L_Debye, set_molarity!, dlcap0, DerivedData, apply_charge!, ysum, qsweep, capscalc, calc_cmol, calc_c0mol, calc_χ, W, pramp
 end
 
 # ╔═╡ ef660f6f-9de3-4896-a65e-13c60df5de1e
@@ -351,14 +351,14 @@ function plotsol(
 end
 
 
-# ╔═╡ d2df6ed0-e6f5-4677-b790-bfc40de7fd6a
+# ╔═╡ 0eb0bbce-6f1c-4b7d-9df7-a375d30f5c99
 begin
     Q = surfcharge(n1_e)
     sol1 = inival1
-    for q in range(0, Q, length = 11)
+	pramp(p=(0,Q)) do q
         data1.q .= [-q, q]
         global sol1 = solve(sys1; inival = sol1, verbose = "")
-    end
+	end
 end
 
 # ╔═╡ 5f153fe4-4476-401e-8674-b6902213c19e
@@ -398,7 +398,7 @@ sol1
 # ╠═ae11bded-9f67-4004-8786-ed54e1ccb932
 # ╠═8433319f-2f78-494c-9b2e-a5390cf93b00
 # ╠═70910bd5-b8ca-4021-9b40-233b50ea5601
-# ╠═d2df6ed0-e6f5-4677-b790-bfc40de7fd6a
+# ╠═0eb0bbce-6f1c-4b7d-9df7-a375d30f5c99
 # ╠═7d7ebb45-2fb3-40ea-83f2-62d0a240b2db
 # ╠═f8c1c2bd-7466-491e-9132-4f15edcfa4c7
 # ╟─f75f1d3a-47e5-475b-97b1-bb275a510783

@@ -739,14 +739,16 @@ function poisson_and_p_flux!(f, u, edge, data)
     χ2 = zero(T)
 
     if data.χvar
+
         χ1 = susceptibility(uu1, data)
         χ2 = susceptibility(uu2, data)
-        χ = (χ1 + χ2) / 2
+        χ = 2 / (1 / χ1 + 1 / χ2)
         E1 = u[iE, 1] * Escale
         E2 = u[iE, 2] * Escale
         E = (E1 + E2) / 2
     end
 
+    # Poisson equation is scaled with qscale
     f[iφ] = (1.0 + χ) * data.ε_0 * (u[iφ, 1] - u[iφ, 2]) * data.qscale
 
     # pressure equation is scaled with 1/pscale

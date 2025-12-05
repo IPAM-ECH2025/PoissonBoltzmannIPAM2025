@@ -97,38 +97,47 @@ function AppliedPotentialHalfCell(grid, data; dielectric_decrement = false, valu
     return AppliedPotentialHalfCell(sys)
 end
 
-function dlcapsweep(cell::AppliedPotentialHalfCell; φ_max = 1.0, δφ = 1.0e-5, steps = 51, damp_initial = 1, kwargs...)
+function dlcapsweep(
+        cell::AppliedPotentialHalfCell; φ_max = 1.0, δφ = 1.0e-5,
+        steps = 51, hmin = 1.0e-5, damp_initial = 1, kwargs...
+    )
     set_φ!(cell, 0)
     sol0 = solve(cell; damp_initial)
     volts = zeros(0)
     dlcaps = zeros(0)
-    χvar = cell.sys.physics.data.χvar
-
+    hmax = φ_max / steps
     for dir in [-1, 1]
         sol = sol0
-        for φ in range(0, φ_max, length = steps)
-            set_φ!(cell, dir * φ)
+        h = 0.001
+        φ = 0.0
+        first = true
+        while φ < φ_max
+            try
+                if first
+                    _φ = φ
+                else
+                    _φ = min(φ + h, φ_max)
+                end
+                set_φ!(cell, dir * _φ)
+                sol = solve(cell; inival = sol, damp_initial, kwargs...)
+                Q = calc_spacecharge(cell.sys, sol)
 
-            if χvar
-                cell.sys.physics.data.χvar = false
-                sol = solve(cell; inival = sol, kwargs...)
-                cell.sys.physics.data.χvar = true
+                set_φ!(cell, dir * (_φ + δφ))
+                sol = solve(cell; inival = sol, damp_initial, kwargs...)
+                Qδ = calc_spacecharge(cell.sys, sol)
+
+                cdl = (Qδ - Q) / (dir * δφ)
+                push!(volts, dir * φ)
+                push!(dlcaps, cdl)
+                φ = _φ
+                h = min(h * 1.2, hmax)
+                first = false
+            catch e
+                h = h / 2
+                if h < hmin || first
+                    rethrow(e)
+                end
             end
-            sol = solve(cell; inival = sol, damp_initial, kwargs...)
-            Q = calc_spacecharge(cell.sys, sol)
-
-            set_φ!(cell, dir * (φ + δφ))
-            if χvar
-                cell.sys.physics.data.χvar = false
-                sol = solve(cell; inival = sol, kwargs...)
-                cell.sys.physics.data.χvar = true
-            end
-            sol = solve(cell; inival = sol, damp_initial, kwargs...)
-            Qδ = calc_spacecharge(cell.sys, sol)
-
-            cdl = (Qδ - Q) / (dir * δφ)
-            push!(volts, dir * φ)
-            push!(dlcaps, cdl)
         end
         if dir == -1
             volts = reverse(volts)[1:(end - 1)]

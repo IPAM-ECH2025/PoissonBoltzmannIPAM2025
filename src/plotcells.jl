@@ -156,13 +156,27 @@ function plotcells(
     χc = calc_χ(solc, cell)
 
 
-    # solv = unknowns(celldd)
-    # for _Δφ in range(0, Δφ, length = 10)
-    #     set_φ!(celldd, _Δφ)
-    #     solv = solve(celldd, inival = solv, damp_initial = 0.1)
-    # end
-    set_φ!(celldd, Δφ)
-    solv = solve(celldd, inival = solc, damp_initial = 0.1)
+    solv = unknowns(celldd)
+    set_φ!(celldd, 0)
+    solv = solve(celldd, inival = solv, damp_initial = 0.5)
+    h = 0.001
+    v = 0.0
+    while v < Δφ
+        try
+            vv = min(v + h, Δφ)
+            set_φ!(celldd, vv)
+            solv = solve(celldd, inival = solv, damp_initial = 0.5)
+            v = vv
+            h = h * 1.2
+        catch e
+            h = h / 2
+            if h < 1.0e-5
+                rethrow(e)
+            end
+        end
+    end
+    #set_φ!(celldd, Δφ)
+    #solv = solve(celldd, inival = solc, damp_initial = 0.1)
 
     cv = calc_cmol(solv, celldd)
     c0v = calc_c0mol(solv, celldd)

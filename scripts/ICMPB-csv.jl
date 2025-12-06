@@ -19,15 +19,15 @@ using DelimitedFiles
 using DrWatson
 
 using PoissonBoltzmannIPAM2025
-using JuliaMPBSolver
+using AugmentedPoissonBoltzmann
 
-const nel = 1.0 * JuliaMPBSolver.Units.el_surface_density # number of electrons/nm^2 at interfaces
+const nel = 1.0 * AugmentedPoissonBoltzmann.Units.el_surface_density # number of electrons/nm^2 at interfaces
 const M_bulk = 2.0 # (bulk) molarity at center of domain
-const E0 = 10JuliaMPBSolver.Units.V / JuliaMPBSolver.Units.nm # decrement parameter
+const E0 = 10AugmentedPoissonBoltzmann.Units.V / AugmentedPoissonBoltzmann.Units.nm # decrement parameter
 const a = 5.0 / E0^2 # decrement parameter in χ(E)
-const c̄ = 55.508JuliaMPBSolver.Units.M # summary molar concentration
+const c̄ = 55.508AugmentedPoissonBoltzmann.Units.M # summary molar concentration
 const z = [-1, 1]
-const c_bulk = [M_bulk / abs(z[1]), M_bulk / abs(z[2])] * JuliaMPBSolver.Units.M # bulk  concentrations
+const c_bulk = [M_bulk / abs(z[1]), M_bulk / abs(z[2])] * AugmentedPoissonBoltzmann.Units.M # bulk  concentrations
 
 const F = ph"N_A" * ph"e"
 const K = ufac"K"
@@ -46,8 +46,8 @@ const L = 2.278592867nm # computational domain size
 const N = length(z)
 
 # Parameters
-user_parameters = JuliaMPBSolver.Parameters.UserParameters(
-    273.15 + 25 * JuliaMPBSolver.Units.K,
+user_parameters = AugmentedPoissonBoltzmann.Parameters.UserParameters(
+    273.15 + 25 * AugmentedPoissonBoltzmann.Units.K,
     78.49 - 1,
     0.0,
     0.0,
@@ -63,15 +63,15 @@ user_parameters = JuliaMPBSolver.Parameters.UserParameters(
 )
 
 computed_parameters =
-    JuliaMPBSolver.Parameters.ComputedParameters(user_parameters)
+    AugmentedPoissonBoltzmann.Parameters.ComputedParameters(user_parameters)
 
-grid_parameters = JuliaMPBSolver.Grid.UniformGrid(
+grid_parameters = AugmentedPoissonBoltzmann.Grid.UniformGrid(
     domain_size = L,
     refinement = 4,
     n_points = 20,
     use_offset = false,
 )
-grid = JuliaMPBSolver.Grid.create_full_cell(grid_parameters)
+grid = AugmentedPoissonBoltzmann.Grid.create_full_cell(grid_parameters)
 
 const i3 = grid[BFaceNodes][1, 3] # Index  of grid midpoint
 
@@ -190,7 +190,7 @@ indata = (M = M_bulk, q = 1, L = L / nm, n = length(Z))
 
 savename(indata)
 
-c3_avg = fill(M_bulk * JuliaMPBSolver.Units.M, 2)
+c3_avg = fill(M_bulk * AugmentedPoissonBoltzmann.Units.M, 2)
 
 data3 = PBData(
     c_avg = c3_avg,
@@ -200,13 +200,13 @@ data3 = PBData(
 
 sys3 = ICMPBSystem(data = data3, generic = xreaction!)
 
-JuliaMPBSolver.Equations.add_boundary_charge!(
+AugmentedPoissonBoltzmann.Equations.add_boundary_charge!(
     sys3,
     1,
     2,
     -user_parameters.boundary_electron_density,
 )
-JuliaMPBSolver.Equations.add_boundary_charge!(
+AugmentedPoissonBoltzmann.Equations.add_boundary_charge!(
     sys3,
     1,
     1,
@@ -224,9 +224,9 @@ sol3 = solve!(state3; inival = inival3, verbose = "n", damp_initial = 0.5)
 
 conc =
     concentrations(sol3, data3, c_ref = extcref(sol3[2:N, i3], data3)) /
-    (JuliaMPBSolver.Units.M)
+    (AugmentedPoissonBoltzmann.Units.M)
 
-c0 = c̄ / (JuliaMPBSolver.Units.M) .- sum(conc, dims = 1)
+c0 = c̄ / (AugmentedPoissonBoltzmann.Units.M) .- sum(conc, dims = 1)
 
 reference_data_filename = resultsdir(savename("icmpb", indata, "hdf5"))
 print(reference_data_filename)
@@ -236,13 +236,13 @@ if !isfile(reference_data_filename)
 end
 
 (x_ref, c_solvent_ref) =
-    JuliaMPBSolver.DataOut.read_hdf5_data(reference_data_filename, "c_solvent")
+    AugmentedPoissonBoltzmann.DataOut.read_hdf5_data(reference_data_filename, "c_solvent")
 (x_ref, c_anion_ref) =
-    JuliaMPBSolver.DataOut.read_hdf5_data(reference_data_filename, "c_anion")
+    AugmentedPoissonBoltzmann.DataOut.read_hdf5_data(reference_data_filename, "c_anion")
 (x_ref, c_cation_ref) =
-    JuliaMPBSolver.DataOut.read_hdf5_data(reference_data_filename, "c_cation")
+    AugmentedPoissonBoltzmann.DataOut.read_hdf5_data(reference_data_filename, "c_cation")
 
-same_x = x_ref == JuliaMPBSolver.Grid.get_coordinates(grid)
+same_x = x_ref == AugmentedPoissonBoltzmann.Grid.get_coordinates(grid)
 if !same_x
     throw(ErrorException("Grid coordinates mismatch"))
 end

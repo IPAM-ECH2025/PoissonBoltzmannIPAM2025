@@ -1,5 +1,5 @@
 using Pkg
-using JuliaMPBSolver
+using AugmentedPoissonBoltzmann
 using ExampleJuggler
 using Test
 using Markdown
@@ -42,5 +42,3 @@ end
     end
 
 end
-
-Pkg.test("JuliaMPBSolver")

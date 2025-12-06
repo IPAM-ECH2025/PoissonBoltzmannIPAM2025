@@ -21,7 +21,7 @@ begin
     using PythonPlot: pyplot
     using LaTeXStrings
     using Colors
-    using JuliaMPBSolver.ICMPBP: ICMPBP, ICMPBData, AppliedPotentialHalfCell, set_molarity!, calc_cmol, calc_c0mol, calc_χ, get_E, get_φ, get_p, get_c0,
+    using AugmentedPoissonBoltzmann.ICMPBP: ICMPBP, ICMPBData, AppliedPotentialHalfCell, set_molarity!, calc_cmol, calc_c0mol, calc_χ, get_E, get_φ, get_p, get_c0,
         set_κ!, set_φ!
     using DrWatson, PoissonBoltzmannIPAM2025
 

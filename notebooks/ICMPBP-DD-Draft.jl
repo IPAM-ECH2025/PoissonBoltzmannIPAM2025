@@ -28,7 +28,7 @@ begin
     using LessUnitful
     using Test
     using PythonPlot
-    using JuliaMPBSolver.ICMPBP: ICMPBData, ICMPBSystem, L_Debye, set_molarity!, dlcap0, DerivedData, apply_charge!, ysum, qsweep, capscalc, calc_cmol, calc_c0mol, calc_χ, W, pramp
+    using AugmentedPoissonBoltzmann.ICMPBP: ICMPBData, ICMPBSystem, L_Debye, set_molarity!, dlcap0, DerivedData, apply_charge!, ysum, qsweep, capscalc, calc_cmol, calc_c0mol, calc_χ, W, pramp
 end
 
 # ╔═╡ ef660f6f-9de3-4896-a65e-13c60df5de1e

@@ -358,7 +358,7 @@ begin
     sol1 = inival1
     pramp(; p = (0, Q), h = Q / 2, verbose = true) do q
         data1.q .= [-q, q]
-        sol1 = solve(sys1; inival = sol1, damp_initial = 0.1, max_round = 4, verbose = "")
+        global sol1 = solve(sys1; inival = sol1, damp_initial = 0.1, max_round = 4, verbose = "")
     end
 end
 

@@ -22,12 +22,15 @@ module ICMPBP
     using VoronoiFVM
     using LinearAlgebra
     using SciMLBase
+
+    include("pramp.jl")
     include("icmbp-p.jl")
     include("cells.jl")
 end
 
 include("api.jl")
 
+export pramp
 export mpbpsolve
 export icmpbpsolve
 end

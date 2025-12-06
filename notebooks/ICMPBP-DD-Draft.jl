@@ -28,7 +28,7 @@ begin
     using LessUnitful
     using Test
     using PythonPlot
-    using JuliaMPBSolver.ICMPBP: ICMPBData, ICMPBSystem, L_Debye, set_molarity!, dlcap0, DerivedData, apply_charge!, ysum, qsweep, capscalc, calc_cmol, calc_c0mol, calc_χ, W
+    using JuliaMPBSolver.ICMPBP: ICMPBData, ICMPBSystem, L_Debye, set_molarity!, dlcap0, DerivedData, apply_charge!, ysum, qsweep, capscalc, calc_cmol, calc_c0mol, calc_χ, W, pramp
 end
 
 # ╔═╡ ef660f6f-9de3-4896-a65e-13c60df5de1e
@@ -246,12 +246,13 @@ end;
 # ╔═╡ 2ef6b8d7-e5f3-4700-8a40-8feffab3569f
 floataside(
     md"""
-    - ``L/nm``: $(@bind L0 PlutoUI.Slider(2:1:10, default=10, show_value=true))		   
+     - ``L/nm``: $(@bind L0 PlutoUI.Slider(2:1:10, default=10, show_value=true))		   
     - ``M_{avg}/(mol/dm^3)``:  $(@bind M1_avg PlutoUI.Slider(0.1:0.1:2, default=1, show_value=true))
     - ``n_e/(e/nm^2)``: $(@bind n1_e PlutoUI.Slider(0:0.5:5, default=1, show_value=true))
     - ``κ``: $(@bind kappa1 PlutoUI.Slider(0:1:20, default=10, show_value=true))
-      ``M_{scale}/(mol/dm^3)``: $(@bind Mscale PlutoUI.Slider(5:5:60, default=60, show_value=true))
-    """, top = 100
+    - dielectric decrement: $(@bind dd PlutoUI.CheckBox())
+    -``M_{scale}/(mol/dm^3)``: $(@bind Mscale PlutoUI.Slider(5:5:60, default=60, show_value=true))
+        """, top = 100
 )
 
 
@@ -262,7 +263,7 @@ begin
     )
     set_molarity!(data1, M1_avg)
     data1.conserveions = true
-    data1.χvar = true
+    data1.χvar = dd
 end
 
 # ╔═╡ f8c1c2bd-7466-491e-9132-4f15edcfa4c7
@@ -351,13 +352,13 @@ function plotsol(
 end
 
 
-# ╔═╡ d2df6ed0-e6f5-4677-b790-bfc40de7fd6a
+# ╔═╡ 0eb0bbce-6f1c-4b7d-9df7-a375d30f5c99
 begin
     Q = surfcharge(n1_e)
     sol1 = inival1
-    for q in range(0, Q, length = 11)
+    pramp(; p = (0, Q), h = Q / 2, verbose = true) do q
         data1.q .= [-q, q]
-        global sol1 = solve(sys1; inival = sol1, verbose = "")
+        global sol1 = solve(sys1; inival = sol1, damp_initial = 0.1, max_round = 4, verbose = "")
     end
 end
 
@@ -371,6 +372,9 @@ plotsol(sol1, sys1; Mscale)
 
 # ╔═╡ 0e4ec7f0-0aa8-4a32-96a3-40f63f32a12d
 sol1
+
+# ╔═╡ 8d9d737c-0fbe-4664-afac-afa7d5e5fc4e
+Q
 
 # ╔═╡ 7d7ebb45-2fb3-40ea-83f2-62d0a240b2db
 @test isa(sol1, AbstractMatrix)
@@ -393,12 +397,13 @@ sol1
 # ╠═eacdd772-1869-406a-b601-64cdd6453ec1
 # ╟─760e5861-7a6f-41bb-8aec-5e7466c6ec9f
 # ╠═f4facb34-1f4a-432d-8a1e-30299e542bcd
-# ╟─2ef6b8d7-e5f3-4700-8a40-8feffab3569f
+# ╠═2ef6b8d7-e5f3-4700-8a40-8feffab3569f
 # ╠═a629e8a1-b1d7-42d8-8c17-43475785218e
 # ╠═ae11bded-9f67-4004-8786-ed54e1ccb932
 # ╠═8433319f-2f78-494c-9b2e-a5390cf93b00
 # ╠═70910bd5-b8ca-4021-9b40-233b50ea5601
-# ╠═d2df6ed0-e6f5-4677-b790-bfc40de7fd6a
+# ╠═8d9d737c-0fbe-4664-afac-afa7d5e5fc4e
+# ╠═0eb0bbce-6f1c-4b7d-9df7-a375d30f5c99
 # ╠═7d7ebb45-2fb3-40ea-83f2-62d0a240b2db
 # ╠═f8c1c2bd-7466-491e-9132-4f15edcfa4c7
 # ╟─f75f1d3a-47e5-475b-97b1-bb275a510783

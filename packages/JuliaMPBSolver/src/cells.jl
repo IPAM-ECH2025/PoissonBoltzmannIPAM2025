@@ -51,7 +51,7 @@ get_c0(sol, cell::AbstractMPBCell) = sol[mpbdata(cell).i0, :]
 set_κ!(cell::AbstractMPBCell, κ::Number) = mpbdata(cell).κ = [κ, κ]
 set_molarity!(cell::AbstractMPBCell, M) = set_molarity!(mpbdata(cell), M)
 set_φ!(cell::AbstractMPBCell, φ::Number) = mpbdata(cell).φ = φ
-set_q!(cell::AbstractMPBCell, q::Number) = mpbdata(cell).q .= [-q, q]
+set_q!(cell::AbstractMPBCell, q::Number) = mpbdata(cell).q .= [q, -q]
 
 function SciMLBase.solve(cell::AbstractMPBCell; inival = unknowns(cell), verbose = "", damp_initial = 0.1, kwargs...)
     sys = cell.sys
@@ -99,7 +99,7 @@ end
 
 function dlcapsweep(
         cell::AppliedPotentialHalfCell; φ_max = 1.0, δφ = 1.0e-5,
-        steps = 51, hmin = 1.0e-5, damp_initial = 1, kwargs...
+        steps = 51, damp_initial = 1, kwargs...
     )
     set_φ!(cell, 0)
     sol0 = solve(cell; damp_initial)
@@ -108,36 +108,19 @@ function dlcapsweep(
     hmax = φ_max / steps
     for dir in [-1, 1]
         sol = sol0
-        h = 0.001
-        φ = 0.0
-        first = true
-        while φ < φ_max
-            try
-                if first
-                    _φ = φ
-                else
-                    _φ = min(φ + h, φ_max)
-                end
-                set_φ!(cell, dir * _φ)
-                sol = solve(cell; inival = sol, damp_initial, kwargs...)
-                Q = calc_spacecharge(cell.sys, sol)
+        pramp(; p = (0, φ_max), h = hmax, hmax) do φ
 
-                set_φ!(cell, dir * (_φ + δφ))
-                sol = solve(cell; inival = sol, damp_initial, kwargs...)
-                Qδ = calc_spacecharge(cell.sys, sol)
+            set_φ!(cell, dir * φ)
+            sol = solve(cell; inival = sol, damp_initial, kwargs...)
+            Q = calc_spacecharge(cell.sys, sol)
 
-                cdl = (Qδ - Q) / (dir * δφ)
-                push!(volts, dir * φ)
-                push!(dlcaps, cdl)
-                φ = _φ
-                h = min(h * 1.2, hmax)
-                first = false
-            catch e
-                h = h / 2
-                if h < hmin || first
-                    rethrow(e)
-                end
-            end
+            set_φ!(cell, dir * (φ + δφ))
+            sol = solve(cell; inival = sol, damp_initial, kwargs...)
+            Qδ = calc_spacecharge(cell.sys, sol)
+
+            cdl = (Qδ - Q) / (dir * δφ)
+            push!(volts, dir * φ)
+            push!(dlcaps, cdl)
         end
         if dir == -1
             volts = reverse(volts)[1:(end - 1)]

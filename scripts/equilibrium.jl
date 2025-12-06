@@ -12,7 +12,7 @@ using LessUnitful.MoreUnitful
 using Test
 using PythonPlot
 using Colors
-using JuliaMPBSolver
+using AugmentedPoissonBoltzmann
 
 function L_Debye(data)
     return sqrt(
@@ -379,15 +379,15 @@ begin
     L = 20nm
 end
 
-grid_parameters = JuliaMPBSolver.Grid.GeometricGrid(
+grid_parameters = AugmentedPoissonBoltzmann.Grid.GeometricGrid(
     domain_size = L,
     refinement = 0,
     hmin = 0.05 * nm,
     hmax = 0.5 * nm,
     use_offset = false,
 )
-grid = JuliaMPBSolver.Grid.create_half_cell(grid_parameters)
-X = JuliaMPBSolver.Grid.get_coordinates(grid)
+grid = AugmentedPoissonBoltzmann.Grid.create_half_cell(grid_parameters)
+X = AugmentedPoissonBoltzmann.Grid.get_coordinates(grid)
 
 sys_sy = create_equilibrium_system(grid, equidata)
 

@@ -29,7 +29,7 @@ begin
     using Test
     using PythonPlot
     using Colors
-    using JuliaMPBSolver.ICMPBP: ICMPBData, ICMPBSystem, L_Debye, set_molarity!, dlcap0, DerivedData, apply_charge!, ysum, qsweep, capscalc, calc_cmol, calc_c0mol
+    using AugmentedPoissonBoltzmann.ICMPBP: ICMPBData, ICMPBSystem, L_Debye, set_molarity!, dlcap0, DerivedData, apply_charge!, ysum, qsweep, capscalc, calc_cmol, calc_c0mol
 end
 
 # ╔═╡ ef660f6f-9de3-4896-a65e-13c60df5de1e

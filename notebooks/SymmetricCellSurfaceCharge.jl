@@ -22,7 +22,7 @@ begin
     using LaTeXStrings
     using Colors
     using DrWatson, PoissonBoltzmannIPAM2025
-    using JuliaMPBSolver.ICMPBP: ICMPBP, ICMPBData, SurfaceChargedSymmetricCell, AbstractSymmetricCell, set_molarity!, calc_cmol, calc_c0mol, calc_χ, get_E, get_φ, get_p, get_c0,
+    using AugmentedPoissonBoltzmann.ICMPBP: ICMPBP, ICMPBData, SurfaceChargedSymmetricCell, AbstractSymmetricCell, set_molarity!, calc_cmol, calc_c0mol, calc_χ, get_E, get_φ, get_p, get_c0,
         set_κ!, set_q!
 end
 

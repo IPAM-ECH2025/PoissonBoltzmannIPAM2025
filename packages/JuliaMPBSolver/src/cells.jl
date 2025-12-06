@@ -108,7 +108,8 @@ function dlcapsweep(
     hmax = φ_max / steps
     for dir in [-1, 1]
         sol = sol0
-        pramp(; p = (0, φ_max), hmax, verbose = true) do φ
+        pramp(; p = (0, φ_max), h = hmax, hmax, verbose = true) do φ
+
             set_φ!(cell, dir * φ)
             sol = solve(cell; inival = sol, damp_initial, kwargs...)
             Q = calc_spacecharge(cell.sys, sol)

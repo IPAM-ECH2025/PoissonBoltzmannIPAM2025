@@ -94,7 +94,7 @@ p1 = let
     fig, ax = pyplot.subplots(1, 1)
     fig.set_size_inches(600 / 100, 300 / 100)
     κ = 10
-    ax.set_title("Double layer capacitance, κ=$(κ)\n Dashed: without dielectric decrement")
+    ax.set_title("Double layer capacitance, κ=$(κ)\n Dashed: witghout dielectric decrement")
     set_κ!(halfcell, κ)
     set_κ!(halfcelldd, κ)
     for i in 1:length(molarities)

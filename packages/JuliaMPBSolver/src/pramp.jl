@@ -18,7 +18,7 @@ function pramp(
         f;
         p = [0, 1],
         hmin = (p[end] - p[begin]) / 1000,
-        hmax = (p[end] - p[begin]) / 10,
+        hmax = p[end] - p[begin],
         h = hmax,
         hgrow = 1.2,
         hdegrow = 0.5,
@@ -36,14 +36,25 @@ function pramp(
             end
             f(ptrial)
             if verbose
-                println("pramp - success: p=$(pcurrent), h=$(h)")
+                if first
+                    println("pramp - success: p=$(pcurrent)")
+                else
+                    println("pramp - success: p=$(pcurrent) + $(h)")
+                end
             end
             pcurrent = ptrial
-            h = min(h * hgrow, hmax)
-            first = false
+            if first
+                first = false
+            else
+                h = min(h * hgrow, hmax)
+            end
         catch e
             if verbose
-                println("pramp - error: p=$(pcurrent), h=$(h)")
+                if first
+                    println("pramp - error: p=$(pcurrent)")
+                else
+                    println("pramp - error: p=$(pcurrent) + $(h)")
+                end
             end
             h = h * hdegrow
             if h < hmin || first

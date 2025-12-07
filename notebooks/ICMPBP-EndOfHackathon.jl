@@ -29,7 +29,7 @@ begin
     using Test
     using PythonPlot
     using Colors
-    using AugmentedPoissonBoltzmann.ICMPBP: ICMPBData, ICMPBSystem, L_Debye, set_molarity!, dlcap0, DerivedData, apply_charge!, ysum, qsweep, capscalc, calc_cmol, calc_c0mol
+    using AugmentedPoissonBoltzmann.SolverCore: AugmentedPBData, AugmentedPBSystem, set_molarity!, calc_cmol, calc_c0mol
 end
 
 # ╔═╡ ef660f6f-9de3-4896-a65e-13c60df5de1e
@@ -333,7 +333,7 @@ end
 
 # ╔═╡ eacdd772-1869-406a-b601-64cdd6453ec1
 begin
-    data1 = ICMPBData(
+    data1 = AugmentedPBData(
         q = [surfcharge(n1_e), -surfcharge(n1_e)],
         κ = [kappa1, kappa1]
     )
@@ -342,7 +342,7 @@ begin
 end
 
 # ╔═╡ 8433319f-2f78-494c-9b2e-a5390cf93b00
-sys1 = ICMPBSystem(grid, data1);
+sys1 = AugmentedPBSystem(grid, data1);
 
 # ╔═╡ 70910bd5-b8ca-4021-9b40-233b50ea5601
 inival1 = unknowns(sys1, data1);

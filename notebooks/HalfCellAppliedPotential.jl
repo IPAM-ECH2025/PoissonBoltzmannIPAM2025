@@ -21,8 +21,8 @@ begin
     using PythonPlot: pyplot
     using LaTeXStrings
     using Colors
-    using AugmentedPoissonBoltzmann.ICMPBP: ICMPBP, ICMPBData, AppliedPotentialHalfCell, set_molarity!, calc_cmol, calc_c0mol, calc_χ, get_E, get_φ, get_p, get_c0,
-        set_κ!, set_φ!
+    using AugmentedPoissonBoltzmann.SolverCore: AugmentedPBP, AugmentedPBData, AppliedPotentialHalfCell, set_molarity!, calc_cmol, calc_c0mol, calc_χ, get_E, get_φ, get_p,
+        set_κ!, set_φ!, dlcapsweep
     using DrWatson, PoissonBoltzmannIPAM2025
 
 end
@@ -61,7 +61,7 @@ All values are given with respect to SI basic units (m, kg, s, V, A)
 """
 
 # ╔═╡ b24b7e23-61ea-41fc-a345-286e904c042b
-datavhalf = ICMPBData(χvar = true)
+datavhalf = AugmentedPBData(χvar = true)
 
 # ╔═╡ 1bb47749-edde-4bee-be9f-059a7652b354
 begin
@@ -101,11 +101,11 @@ p1 = let
         M = molarities[i]
         set_molarity!(halfcell, M)
 
-        volts, dlcaps = ICMPBP.dlcapsweep(halfcell; φ_max)
+        volts, dlcaps = dlcapsweep(halfcell; φ_max)
         plot(volts, dlcaps / (μF / cm^2), color = colors[i], linestyle = "--")
 
         set_molarity!(halfcelldd, M)
-        volts, dlcaps = ICMPBP.dlcapsweep(halfcelldd; φ_max, damp_initial = 0.5)
+        volts, dlcaps = dlcapsweep(halfcelldd; φ_max, damp_initial = 0.5)
         plot(volts, dlcaps / (μF / cm^2), label = "M=$(M)", color = colors[i])
     end
     ax.set_xlabel("U/V")
@@ -140,10 +140,10 @@ p2 = let
         set_κ!(halfcell, κ)
         set_κ!(halfcelldd, κ)
 
-        volts, dlcaps = ICMPBP.dlcapsweep(halfcelldd; φ_max, damp_initial = 0.5)
+        volts, dlcaps = dlcapsweep(halfcelldd; φ_max, damp_initial = 0.5)
         plot(volts, dlcaps / (μF / cm^2), label = "κ=$(κ)", color = colors[i])
 
-        volts, dlcaps = ICMPBP.dlcapsweep(halfcell; φ_max)
+        volts, dlcaps = dlcapsweep(halfcell; φ_max)
         plot(volts, dlcaps / (μF / cm^2), color = colors[i], linestyle = "--")
 
     end

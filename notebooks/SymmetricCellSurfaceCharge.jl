@@ -22,7 +22,7 @@ begin
     using LaTeXStrings
     using Colors
     using DrWatson, PoissonBoltzmannIPAM2025
-    using AugmentedPoissonBoltzmann.ICMPBP: ICMPBP, ICMPBData, SurfaceChargedSymmetricCell, AbstractSymmetricCell, set_molarity!, calc_cmol, calc_c0mol, calc_χ, get_E, get_φ, get_p, get_c0,
+    using AugmentedPoissonBoltzmann.SolverCore: AugmentedPBData, SurfaceChargedSymmetricCell, AbstractSymmetricCell, set_molarity!, calc_cmol, calc_c0mol, calc_χ, get_E, get_φ, get_p, get_c0,
         set_κ!, set_q!
 end
 
@@ -75,7 +75,7 @@ All values are given with respect to SI basic units (m, kg, s, V, A)
 """
 
 # ╔═╡ b24b7e23-61ea-41fc-a345-286e904c042b
-data = ICMPBData(χvar = true, conserveions = true)
+data = AugmentedPBData(χvar = true, conserveions = true)
 
 # ╔═╡ 1bb47749-edde-4bee-be9f-059a7652b354
 begin

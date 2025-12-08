@@ -32,7 +32,7 @@ Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 VoronoiFVM = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 
 [compat]
-AugmentedPoissonBoltzmann = "0.4.1"
+AugmentedPoissonBoltzmann = "0.5"
 DoubleFloats = "1"
 DynamicQuantities = "1.10.0"
 ExampleJuggler = "2.4.0"
@@ -54,8 +54,8 @@ VoronoiFVM = "2.14"
 julia = "1.11"
 
 [extras]
-ExampleJuggler = "3bbe58f8-ed81-4c4e-a134-03e85fcf4a1a"
 AugmentedPoissonBoltzmann = "d8b18f01-5396-498d-b34d-247825c18ff1"
+ExampleJuggler = "3bbe58f8-ed81-4c4e-a134-03e85fcf4a1a"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 

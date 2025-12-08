@@ -19,7 +19,7 @@ begin
     using Test
     using PythonPlot
     using Colors
-    using AugmentedPoissonBoltzmann.ICMPBP: ICMPBData, ICMPBSystem, L_Debye, set_molarity!, dlcap0, DerivedData, apply_charge!, ysum, qsweep, capscalc
+    using AugmentedPoissonBoltzmann.SolverCore: AugmentedPBData, AugmentedPBSystem, L_Debye, set_molarity!, dlcap0, DerivedData, apply_charge!, ysum, qsweep, capscalc
 end
 
 # ╔═╡ ef660f6f-9de3-4896-a65e-13c60df5de1e
@@ -61,7 +61,7 @@ begin
 end
 
 # ╔═╡ a3f23fe8-3b83-440a-8f4f-c4fedef5615b
-L_Debye(ICMPBData(molarity = 0.01 * ph"N_A" / ufac"dm^3")) / nm
+L_Debye(AugmentedPBData(molarity = 0.01 * ph"N_A" / ufac"dm^3")) / nm
 
 # ╔═╡ 5a210961-19fc-40be-a5f6-033a80f1414d
 md"""
@@ -72,7 +72,7 @@ Check with Bard/Faulkner: the value must be $(22.8)μF/cm^2")
 # ╠═╡ skip_as_script = true
 #=╠═╡
 let
-    data=ICMPBData()
+    data=AugmentedPBData()
     set_molarity!(data,0.01)
     data.χ=78.49-1
     cdl0=dlcap0(data)/ufac"μF/cm^2"
@@ -82,7 +82,7 @@ end
 
 # ╔═╡ b1e333c0-cdaa-4242-b71d-b54ff71aef83
 let
-    data = ICMPBData()
+    data = AugmentedPBData()
     set_molarity!(data, 0.01)
     ddata = DerivedData(data)
     sumyz = 0.0
@@ -111,7 +111,7 @@ end;
 
 # ╔═╡ 05334798-a072-41ae-b23e-f884baadb071
 begin
-    data = ICMPBData(; conserveions = true)
+    data = AugmentedPBData(; conserveions = true)
     set_molarity!(data, 1)
 end
 
@@ -129,7 +129,7 @@ begin
 end
 
 # ╔═╡ 31a1f686-f0b6-430a-83af-187df411b293
-sys = ICMPBSystem(grid, data)
+sys = AugmentedPBSystem(grid, data)
 
 # ╔═╡ 684aa24b-046f-426f-9b99-f0c45c70f654
 inival = unknowns(sys, data);

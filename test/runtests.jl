@@ -4,6 +4,7 @@ using ExampleJuggler
 using Test
 using Markdown
 using JLD2
+using PlutoUI
 
 ExampleJuggler.verbose!(true)
 
@@ -14,6 +15,7 @@ notebooks = [
     "ICMPBP-DD-Draft.jl",
     "HalfCellAppliedPotential.jl",
     "SymmetricCellSurfaceCharge.jl",
+    "SymmetricCellSurfaceCharge-Interactive.jl",
 ]
 
 scripts = [

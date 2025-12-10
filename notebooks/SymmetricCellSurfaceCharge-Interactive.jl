@@ -348,8 +348,8 @@ function plotsol(
     ax3.legend(loc = (0.1, 0.1))
     ax3r.legend(loc = (0.8, 0.1))
     Emax = 1
- #   ax3.set_ylim((0, Emax))
- #   ax3.set_yticks(range(0, Emax, length = 5))
+    #   ax3.set_ylim((0, Emax))
+    #   ax3.set_yticks(range(0, Emax, length = 5))
     ax3r.set_ylabel("χ")
     ax3.set_ylabel("|E|/(V/nm)")
     ax3r.set_ylim((0, 100))

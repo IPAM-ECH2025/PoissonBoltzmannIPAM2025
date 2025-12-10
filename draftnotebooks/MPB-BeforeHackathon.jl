@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.21
+# v0.20.19
 
 using Markdown
 using InteractiveUtils
@@ -135,8 +135,8 @@ const f_model = 1 # model choice: 0: Boltzmann, 1: Bikermam
 begin
     const floattype = Float64
     const L = 10.0nm # computational domain size
-    const nel = 20 # number of electrons/nm^2 at interfaces
-    const M_bulk = 1 # (bulk) molarity at center of domain
+    const nel = 5 # number of electrons/nm^2 at interfaces
+    const M_bulk = 0.1 # (bulk) molarity at center of domain
     const E0 = 10V / nm # decrement parameter
     const a = 5.0 / E0^2 # decrement parameter in χ(E)
     const z = [-1, 1] # species charge numbers

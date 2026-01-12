@@ -23,6 +23,7 @@ begin
     using Revise
     using PlutoUI, HypertextLiteral, UUIDs
     using VoronoiFVM
+	using VoronoiFVM: data
     using ExtendableGrids
     using LinearAlgebra
     using LessUnitful
